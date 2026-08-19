@@ -6,9 +6,11 @@ import { ChannelListClient } from "./ChannelListClient";
 export const dynamic = "force-dynamic";
 
 export default async function ChannelsPage() {
-  const channels = await listChannels();
-  const categories = await listCategories();
-  const concepts = await listConcepts();
+  const [channels, categories, concepts] = await Promise.all([
+    listChannels(),
+    listCategories(),
+    listConcepts(),
+  ]);
 
   return <ChannelListClient initialChannels={channels} categories={categories} concepts={concepts} />;
 }

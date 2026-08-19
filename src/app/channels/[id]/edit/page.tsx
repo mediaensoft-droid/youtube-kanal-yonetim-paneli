@@ -12,11 +12,12 @@ interface PageProps {
 
 export default async function EditChannelPage({ params }: PageProps) {
   const { id } = await params;
-  const channel = await getChannelById(Number(id));
+  const [channel, categories, concepts] = await Promise.all([
+    getChannelById(Number(id)),
+    listCategories(),
+    listConcepts(),
+  ]);
   if (!channel) notFound();
-
-  const categories = await listCategories();
-  const concepts = await listConcepts();
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-xl">

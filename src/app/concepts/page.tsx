@@ -4,8 +4,7 @@ import { ConceptsClient } from "./ConceptsClient";
 export const dynamic = "force-dynamic";
 
 export default async function ConceptsPage() {
-  const concepts = await listConcepts();
-  const counts = await countChannelsByConcept();
+  const [concepts, counts] = await Promise.all([listConcepts(), countChannelsByConcept()]);
 
   return <ConceptsClient initialConcepts={concepts} channelCounts={counts} />;
 }

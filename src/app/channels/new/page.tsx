@@ -5,8 +5,7 @@ import { ChannelForm } from "@/components/ChannelForm";
 export const dynamic = "force-dynamic";
 
 export default async function NewChannelPage() {
-  const categories = await listCategories();
-  const concepts = await listConcepts();
+  const [categories, concepts] = await Promise.all([listCategories(), listConcepts()]);
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-xl">

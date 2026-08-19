@@ -10,8 +10,7 @@ import { CountryDistributionChart } from "@/components/charts/CountryDistributio
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const channels = await listChannels();
-  const categories = await listCategories();
+  const [channels, categories] = await Promise.all([listChannels(), listCategories()]);
 
   const categoryData = countByCategory(channels, categories);
   const languageData = countByLanguage(channels);

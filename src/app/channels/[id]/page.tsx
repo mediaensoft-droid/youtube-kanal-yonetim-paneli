@@ -21,8 +21,10 @@ export default async function ChannelDetailPage({ params }: PageProps) {
   const channel = await getChannelById(Number(id));
   if (!channel) notFound();
 
-  const category = channel.categoryId ? await getCategoryById(channel.categoryId) : undefined;
-  const concept = channel.conceptId ? await getConceptById(channel.conceptId) : undefined;
+  const [category, concept] = await Promise.all([
+    channel.categoryId ? getCategoryById(channel.categoryId) : undefined,
+    channel.conceptId ? getConceptById(channel.conceptId) : undefined,
+  ]);
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-3xl">
