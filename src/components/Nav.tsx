@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { LayoutDashboard, Tv, Layers, Lightbulb } from "lucide-react";
+import { LayoutDashboard, Tv, Layers, Lightbulb, Menu, X } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,31 +24,68 @@ function BrandMark() {
 
 export function Nav() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
       <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-3">
-        <div className="mr-5 flex items-center gap-2">
+        <div className="mr-5 flex flex-1 items-center gap-2 sm:flex-initial">
           <BrandMark />
           <span className="text-sm font-semibold tracking-tight text-ink">Kanal Paneli</span>
         </div>
-        {links.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={clsx(
-                "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150",
-                active ? "bg-brand text-white shadow-[0_0_0_1px_rgba(255,0,0,0.35)]" : "text-ink-muted hover:bg-surface-hover hover:text-ink"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          );
-        })}
+
+        <div className="hidden items-center gap-1 sm:flex">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={clsx(
+                  "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150",
+                  active
+                    ? "bg-brand text-white shadow-[0_0_0_1px_rgba(255,0,0,0.35)]"
+                    : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label={menuOpen ? "Menüyü kapat" : "Menüyü aç"}
+          className="flex items-center justify-center rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink sm:hidden"
+        >
+          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
+
+      {menuOpen && (
+        <div className="animate-fade-in border-t border-line px-4 py-2 sm:hidden">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className={clsx(
+                  "flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                  active ? "bg-brand text-white" : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </nav>
   );
 }
