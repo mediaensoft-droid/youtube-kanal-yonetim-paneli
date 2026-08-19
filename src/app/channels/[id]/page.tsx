@@ -1,0 +1,100 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ExternalLink, Users, Video, Eye } from "lucide-react";
+import { getChannelById } from "@/lib/db/channels";
+import { getCategoryById } from "@/lib/db/categories";
+import { getConceptById } from "@/lib/db/concepts";
+import { CategoryBadge } from "@/components/CategoryBadge";
+import { formatCompactNumber } from "@/lib/format";
+import { getLanguageName } from "@/lib/constants/languages";
+import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
+import { ChannelDetailsClient } from "./ChannelDetailsClient";
+
+export const dynamic = "force-dynamic";
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function ChannelDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const channel = await getChannelById(Number(id));
+  if (!channel) notFound();
+
+  const category = channel.categoryId ? await getCategoryById(channel.categoryId) : undefined;
+  const concept = channel.conceptId ? await getConceptById(channel.conceptId) : undefined;
+
+  return (
+    <div className="animate-fade-in-up mx-auto max-w-3xl">
+      <Link
+        href="/channels"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors duration-150 hover:text-ink"
+      >
+        <ArrowLeft className="h-4 w-4" /> Kanallara dön
+      </Link>
+
+      <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5 sm:flex-row">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={channel.thumbnailUrl}
+          alt={channel.name}
+          className="h-24 w-24 shrink-0 rounded-full object-cover"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold text-ink">{channel.name}</h1>
+            <a
+              href={channel.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-ink-muted transition-colors duration-150 hover:text-brand"
+            >
+              YouTube&apos;da aç <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-ink-muted">
+            <span className="flex items-center gap-1">
+              <Users className="h-4 w-4" /> {formatCompactNumber(channel.subscriberCount)} abone
+            </span>
+            <span className="flex items-center gap-1">
+              <Video className="h-4 w-4" /> {formatCompactNumber(channel.videoCount)} video
+            </span>
+            <span className="flex items-center gap-1">
+              <Eye className="h-4 w-4" /> {formatCompactNumber(channel.viewCount)} görüntülenme
+            </span>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {category ? (
+              <CategoryBadge name={category.name} color={category.color} />
+            ) : (
+              <span className="text-xs text-ink-faint">Kategorisiz</span>
+            )}
+            {concept && <CategoryBadge name={concept.name} color={concept.color} />}
+            {channel.languages.map((code) => (
+              <span
+                key={`lang-${code}`}
+                className="rounded bg-surface-hover px-1.5 py-0.5 text-[11px] text-ink-muted"
+              >
+                {getLanguageName(code)}
+              </span>
+            ))}
+            {channel.countries.map((code) => (
+              <span
+                key={`country-${code}`}
+                className="rounded bg-surface-hover px-1.5 py-0.5 text-[11px] text-ink-muted"
+              >
+                {countryFlagEmoji(code)} {getCountryName(code)}
+              </span>
+            ))}
+          </div>
+
+          {channel.notes && <p className="mt-3 text-sm text-ink-muted">{channel.notes}</p>}
+        </div>
+      </div>
+
+      <ChannelDetailsClient channelId={channel.id} />
+    </div>
+  );
+}
