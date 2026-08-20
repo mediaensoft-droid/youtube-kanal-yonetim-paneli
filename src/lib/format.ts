@@ -10,6 +10,10 @@ export function formatDate(iso: string | null): string {
   return new Intl.DateTimeFormat("tr-TR", { dateStyle: "long" }).format(new Date(iso));
 }
 
+export function formatShortDate(iso: string): string {
+  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short" }).format(new Date(iso));
+}
+
 export function formatDuration(seconds: number | null): string {
   if (seconds === null) return "—";
   const h = Math.floor(seconds / 3600);

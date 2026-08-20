@@ -4,7 +4,9 @@ import { ArrowLeft, ExternalLink, Users, Video, Eye } from "lucide-react";
 import { getChannelById } from "@/lib/db/channels";
 import { getCategoryById } from "@/lib/db/categories";
 import { getConceptById } from "@/lib/db/concepts";
+import { listSnapshots } from "@/lib/db/snapshots";
 import { CategoryBadge } from "@/components/CategoryBadge";
+import { TrendChart } from "@/components/charts/TrendChart";
 import { formatCompactNumber } from "@/lib/format";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
@@ -21,10 +23,14 @@ export default async function ChannelDetailPage({ params }: PageProps) {
   const channel = await getChannelById(Number(id));
   if (!channel) notFound();
 
-  const [category, concept] = await Promise.all([
+  const [category, concept, snapshots] = await Promise.all([
     channel.categoryId ? getCategoryById(channel.categoryId) : undefined,
     channel.conceptId ? getConceptById(channel.conceptId) : undefined,
+    listSnapshots(channel.id),
   ]);
+
+  const subscriberTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.subscriberCount }));
+  const viewTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.viewCount }));
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-3xl">
@@ -93,6 +99,17 @@ export default async function ChannelDetailPage({ params }: PageProps) {
           </div>
 
           {channel.notes && <p className="mt-3 text-sm text-ink-muted">{channel.notes}</p>}
+        </div>
+      </div>
+
+      <div className="stagger mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border border-line bg-surface p-5">
+          <h2 className="mb-3 text-sm font-semibold text-ink-muted">Abone Trendi</h2>
+          <TrendChart data={subscriberTrend} color="#4DA3FF" />
+        </div>
+        <div className="rounded-lg border border-line bg-surface p-5">
+          <h2 className="mb-3 text-sm font-semibold text-ink-muted">Görüntülenme Trendi</h2>
+          <TrendChart data={viewTrend} color="#2DD4BF" />
         </div>
       </div>
 

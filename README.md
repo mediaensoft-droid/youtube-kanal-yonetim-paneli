@@ -33,8 +33,9 @@ Next.js (App Router) + Tailwind CSS + `@libsql/client` (SQLite/Turso) + Recharts
 - **Dashboard** (`/`): toplam kanal sayısı, kategori/konsept/dil/ülke dağılım grafikleri.
 - **Kanallar** (`/channels`): Büyük/Küçük/Liste görünümleri, kategori/konsept/dil/ülke filtreleri, arama; her kart YouTube URL'sini yeni sekmede açar; "Yenile" butonu ile abone/video sayısı YouTube'dan tekrar çekilir.
 - **Kanal Ekle** (`/channels/new`): YouTube URL'si veya kanal ID'si girilir, ad/thumbnail/istatistikler otomatik çekilir; kategori, konsept, diller ve hedef ülkeler manuel seçilir.
-- **Kanal Detayı** (`/channels/[id]`): kanal açıklaması, katılım tarihi, ortalama izlenme, yükleme sıklığı, son videolar.
+- **Kanal Detayı** (`/channels/[id]`): kanal açıklaması, katılım tarihi, ortalama izlenme, yükleme sıklığı, son videolar, **abone/görüntülenme büyüme trendi grafiği**.
 - **Kategoriler** (`/categories`) / **Konseptler** (`/concepts`): ekle/düzenle/sil, renk seçimi.
+- **Otomatik günlük yenileme**: Vercel Cron ile her gün tüm kanalların istatistikleri otomatik çekilip bir "anlık görüntü" (snapshot) olarak kaydedilir — trend grafiklerinin verisi buradan gelir. Manuel "Yenile" butonu da her tıklamada bir anlık görüntü ekler.
 
 ## Veri Katmanı
 
@@ -68,7 +69,8 @@ Sıfırdan kurulum yapılacaksa:
    - `YOUTUBE_API_KEY`
    - `TURSO_DATABASE_URL`
    - `TURSO_AUTH_TOKEN`
-4. Deploy edin.
+   - `CRON_SECRET` — rastgele bir değer (örn. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`); `/api/cron/refresh-channels` uç noktasını yetkisiz çağrılardan korur, Vercel Cron bunu otomatik `Authorization: Bearer` başlığı olarak gönderir.
+4. Deploy edin. `vercel.json` içindeki `crons` tanımı, günlük otomatik yenilemeyi otomatik olarak devreye alır.
 
 ## Komutlar
 

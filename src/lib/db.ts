@@ -74,6 +74,17 @@ async function bootstrapSchema(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_channels_categoryId ON channels(categoryId);
     CREATE INDEX IF NOT EXISTS idx_channels_name       ON channels(name COLLATE NOCASE);
+
+    CREATE TABLE IF NOT EXISTS channel_snapshots (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      channelId        INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+      subscriberCount  INTEGER,
+      videoCount       INTEGER,
+      viewCount        INTEGER,
+      capturedAt       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_snapshots_channelId_capturedAt ON channel_snapshots(channelId, capturedAt);
   `);
 
   // channels existed before conceptId was introduced; add the column (and its index) for databases created pre-migration.

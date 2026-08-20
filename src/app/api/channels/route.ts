@@ -6,6 +6,7 @@ import {
   getChannelByYoutubeId,
   createChannel,
 } from "@/lib/db/channels";
+import { createSnapshot } from "@/lib/db/snapshots";
 import {
   resolveToChannelId,
   fetchChannelData,
@@ -68,6 +69,12 @@ export async function POST(req: NextRequest) {
       languages: languages ?? [],
       countries: countries ?? [],
       notes: notes ?? null,
+    });
+
+    await createSnapshot(channel.id, {
+      subscriberCount: data.subscriberCount,
+      videoCount: data.videoCount,
+      viewCount: data.viewCount,
     });
 
     return okResponse(channel, 201);

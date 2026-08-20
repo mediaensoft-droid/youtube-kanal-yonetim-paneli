@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getChannelById, updateChannelYouTubeData } from "@/lib/db/channels";
+import { createSnapshot } from "@/lib/db/snapshots";
 import { fetchChannelData, ChannelResolutionError, ChannelApiError } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,11 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
     const channel = await updateChannelYouTubeData(channelId, {
       name: data.title,
       thumbnailUrl: data.thumbnailUrl,
+      subscriberCount: data.subscriberCount,
+      videoCount: data.videoCount,
+      viewCount: data.viewCount,
+    });
+    await createSnapshot(channelId, {
       subscriberCount: data.subscriberCount,
       videoCount: data.videoCount,
       viewCount: data.viewCount,
