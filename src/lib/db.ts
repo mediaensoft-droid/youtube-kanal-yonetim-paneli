@@ -102,6 +102,15 @@ async function bootstrapSchema(): Promise<void> {
     }
   }
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_conceptId ON channels(conceptId)`);
+
+  // Channels created before the growth-trend feature existed have no snapshot history yet;
+  // backfill one initial snapshot from their current stats so a trend line can start forming.
+  await db.execute(`
+    INSERT INTO channel_snapshots (channelId, subscriberCount, videoCount, viewCount, capturedAt)
+    SELECT id, subscriberCount, videoCount, viewCount, createdAt
+    FROM channels
+    WHERE id NOT IN (SELECT DISTINCT channelId FROM channel_snapshots)
+  `);
 }
 
 function ensureSchema(): Promise<void> {
