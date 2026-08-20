@@ -128,11 +128,36 @@ input[type="color"] {
 .animate-drift-c { animation: drift-c 25s ease-in-out infinite; }
 .animate-float-icon { animation: float-icon 16s ease-in-out infinite; }
 
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotate-gradient {
+  to { --gradient-angle: 360deg; }
+}
+
+.animated-gradient {
+  background: conic-gradient(
+    from var(--gradient-angle) at 50% 40%,
+    transparent 0deg,
+    rgba(255, 0, 0, 0.16) 60deg,
+    transparent 140deg,
+    transparent 200deg,
+    rgba(255, 30, 30, 0.12) 260deg,
+    transparent 340deg,
+    transparent 360deg
+  );
+  animation: rotate-gradient 40s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-drift-a,
   .animate-drift-b,
   .animate-drift-c,
-  .animate-float-icon {
+  .animate-float-icon,
+  .animated-gradient {
     animation: none;
   }
 }
