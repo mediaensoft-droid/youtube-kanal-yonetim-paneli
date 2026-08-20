@@ -58,7 +58,11 @@ Veritabanı bağlantısı [`@libsql/client`](https://github.com/tursodatabase/li
 
 ## Vercel'e Deploy
 
-1. Bu projeyi bir GitHub deposuna push'layın (veya `vercel` CLI ile doğrudan deploy edin).
+Proje GitHub'a bağlı ve Vercel'de otomatik deploy etkin: `main` branch'ine yapılan her `git push`, production'a otomatik olarak deploy edilir. Ayrıca `vercel --prod` komutuna gerek yoktur.
+
+Sıfırdan kurulum yapılacaksa:
+
+1. Bu projeyi bir GitHub deposuna push'layın.
 2. [vercel.com](https://vercel.com) üzerinden "Add New Project" ile depoyu içe aktarın (Next.js otomatik algılanır).
 3. **Environment Variables** kısmına şunları ekleyin:
    - `YOUTUBE_API_KEY`
