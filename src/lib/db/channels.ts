@@ -21,6 +21,10 @@ interface ChannelRow {
   updatedAt: string;
 }
 
+interface ChannelRowWithOwner extends ChannelRow {
+  userId: number;
+}
+
 function rowToChannel(row: ChannelRow): Channel {
   return {
     id: row.id,
@@ -42,9 +46,9 @@ function rowToChannel(row: ChannelRow): Channel {
   };
 }
 
-export async function listChannels(filters?: ChannelFilters): Promise<Channel[]> {
-  const conditions: string[] = [];
-  const params: (string | number)[] = [];
+export async function listChannels(userId: number, filters?: ChannelFilters): Promise<Channel[]> {
+  const conditions: string[] = [`userId = ?`];
+  const params: (string | number)[] = [userId];
 
   if (filters?.categoryId !== undefined) {
     conditions.push(`categoryId = ?`);
@@ -67,21 +71,38 @@ export async function listChannels(filters?: ChannelFilters): Promise<Channel[]>
     params.push(`%${filters.search}%`);
   }
 
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   const rows = await all<ChannelRow>(
-    `SELECT * FROM channels ${where} ORDER BY name COLLATE NOCASE ASC`,
+    `SELECT * FROM channels WHERE ${conditions.join(" AND ")} ORDER BY name COLLATE NOCASE ASC`,
     params
   );
   return rows.map(rowToChannel);
 }
 
-export async function getChannelById(id: number): Promise<Channel | undefined> {
-  const row = await get<ChannelRow>(`SELECT * FROM channels WHERE id = ?`, [id]);
+/**
+ * Unscoped — every tenant's channels, for the daily cron refresh job only.
+ * Never expose this via a user-facing API route.
+ */
+export async function listAllChannelsForRefresh(): Promise<(Channel & { userId: number })[]> {
+  const rows = await all<ChannelRowWithOwner>(`SELECT * FROM channels ORDER BY id ASC`);
+  return rows.map((row) => ({ ...rowToChannel(row), userId: row.userId }));
+}
+
+export async function getChannelById(userId: number, id: number): Promise<Channel | undefined> {
+  const row = await get<ChannelRow>(`SELECT * FROM channels WHERE id = ? AND userId = ?`, [
+    id,
+    userId,
+  ]);
   return row ? rowToChannel(row) : undefined;
 }
 
-export async function getChannelByYoutubeId(youtubeId: string): Promise<Channel | undefined> {
-  const row = await get<ChannelRow>(`SELECT * FROM channels WHERE youtubeId = ?`, [youtubeId]);
+export async function getChannelByYoutubeId(
+  userId: number,
+  youtubeId: string
+): Promise<Channel | undefined> {
+  const row = await get<ChannelRow>(`SELECT * FROM channels WHERE youtubeId = ? AND userId = ?`, [
+    youtubeId,
+    userId,
+  ]);
   return row ? rowToChannel(row) : undefined;
 }
 
@@ -100,12 +121,13 @@ export interface CreateChannelRecord {
   notes: string | null;
 }
 
-export async function createChannel(input: CreateChannelRecord): Promise<Channel> {
+export async function createChannel(userId: number, input: CreateChannelRecord): Promise<Channel> {
   const result = await run(
     `INSERT INTO channels
-      (youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryId, conceptId, languages, countries, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryId, conceptId, languages, countries, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
+      userId,
       input.youtubeId,
       input.url,
       input.name,
@@ -120,7 +142,7 @@ export async function createChannel(input: CreateChannelRecord): Promise<Channel
       input.notes,
     ]
   );
-  return (await getChannelById(result.lastInsertRowid))!;
+  return (await getChannelById(userId, result.lastInsertRowid))!;
 }
 
 export interface UpdateChannelManualFields {
@@ -133,10 +155,11 @@ export interface UpdateChannelManualFields {
 }
 
 export async function updateChannelManualFields(
+  userId: number,
   id: number,
   input: UpdateChannelManualFields
 ): Promise<Channel> {
-  const existing = await getChannelById(id);
+  const existing = await getChannelById(userId, id);
   if (!existing) {
     throw new Error(`Channel ${id} not found`);
   }
@@ -150,11 +173,11 @@ export async function updateChannelManualFields(
   await run(
     `UPDATE channels
        SET categoryId = ?, conceptId = ?, languages = ?, countries = ?, notes = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-     WHERE id = ?`,
-    [categoryId, conceptId, JSON.stringify(languages), JSON.stringify(countries), notes, url, id]
+     WHERE id = ? AND userId = ?`,
+    [categoryId, conceptId, JSON.stringify(languages), JSON.stringify(countries), notes, url, id, userId]
   );
 
-  return (await getChannelById(id))!;
+  return (await getChannelById(userId, id))!;
 }
 
 export interface YouTubeRefreshData {
@@ -166,6 +189,7 @@ export interface YouTubeRefreshData {
 }
 
 export async function updateChannelYouTubeData(
+  userId: number,
   id: number,
   data: YouTubeRefreshData
 ): Promise<Channel> {
@@ -174,12 +198,12 @@ export async function updateChannelYouTubeData(
        SET name = ?, thumbnailUrl = ?, subscriberCount = ?, videoCount = ?, viewCount = ?,
            lastRefreshedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
            updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-     WHERE id = ?`,
-    [data.name, data.thumbnailUrl, data.subscriberCount, data.videoCount, data.viewCount, id]
+     WHERE id = ? AND userId = ?`,
+    [data.name, data.thumbnailUrl, data.subscriberCount, data.videoCount, data.viewCount, id, userId]
   );
-  return (await getChannelById(id))!;
+  return (await getChannelById(userId, id))!;
 }
 
-export async function deleteChannel(id: number): Promise<void> {
-  await run(`DELETE FROM channels WHERE id = ?`, [id]);
+export async function deleteChannel(userId: number, id: number): Promise<void> {
+  await run(`DELETE FROM channels WHERE id = ? AND userId = ?`, [id, userId]);
 }

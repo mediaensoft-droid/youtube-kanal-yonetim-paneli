@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getSessionUserId } from "@/lib/auth";
 import { getChannelById } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
 import { listConcepts } from "@/lib/db/concepts";
@@ -11,11 +12,14 @@ interface PageProps {
 }
 
 export default async function EditChannelPage({ params }: PageProps) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/sign-in");
+
   const { id } = await params;
   const [channel, categories, concepts] = await Promise.all([
-    getChannelById(Number(id)),
-    listCategories(),
-    listConcepts(),
+    getChannelById(userId, Number(id)),
+    listCategories(userId),
+    listConcepts(userId),
   ]);
   if (!channel) notFound();
 

@@ -18,43 +18,66 @@ function rowToCategory(row: CategoryRow): Category {
   };
 }
 
-export async function listCategories(): Promise<Category[]> {
-  const rows = await all<CategoryRow>(`SELECT * FROM categories ORDER BY name COLLATE NOCASE ASC`);
+export async function listCategories(userId: number): Promise<Category[]> {
+  const rows = await all<CategoryRow>(
+    `SELECT * FROM categories WHERE userId = ? ORDER BY name COLLATE NOCASE ASC`,
+    [userId]
+  );
   return rows.map(rowToCategory);
 }
 
-export async function getCategoryById(id: number): Promise<Category | undefined> {
-  const row = await get<CategoryRow>(`SELECT * FROM categories WHERE id = ?`, [id]);
+export async function getCategoryById(userId: number, id: number): Promise<Category | undefined> {
+  const row = await get<CategoryRow>(`SELECT * FROM categories WHERE id = ? AND userId = ?`, [
+    id,
+    userId,
+  ]);
   return row ? rowToCategory(row) : undefined;
 }
 
-export async function createCategory(input: CreateCategoryInput): Promise<Category> {
-  const result = await run(`INSERT INTO categories (name, color) VALUES (?, ?)`, [
+export async function createCategory(
+  userId: number,
+  input: CreateCategoryInput
+): Promise<Category> {
+  const result = await run(`INSERT INTO categories (userId, name, color) VALUES (?, ?, ?)`, [
+    userId,
     input.name,
     input.color,
   ]);
-  return (await getCategoryById(result.lastInsertRowid))!;
+  return (await getCategoryById(userId, result.lastInsertRowid))!;
 }
 
-export async function updateCategory(id: number, input: UpdateCategoryInput): Promise<Category> {
-  const existing = await getCategoryById(id);
+export async function updateCategory(
+  userId: number,
+  id: number,
+  input: UpdateCategoryInput
+): Promise<Category> {
+  const existing = await getCategoryById(userId, id);
   if (!existing) {
     throw new Error(`Category ${id} not found`);
   }
   const name = input.name ?? existing.name;
   const color = input.color ?? existing.color;
-  await run(`UPDATE categories SET name = ?, color = ? WHERE id = ?`, [name, color, id]);
-  return (await getCategoryById(id))!;
+  await run(`UPDATE categories SET name = ?, color = ? WHERE id = ? AND userId = ?`, [
+    name,
+    color,
+    id,
+    userId,
+  ]);
+  return (await getCategoryById(userId, id))!;
 }
 
-export async function deleteCategory(id: number): Promise<void> {
-  await run(`UPDATE channels SET categoryId = NULL WHERE categoryId = ?`, [id]);
-  await run(`DELETE FROM categories WHERE id = ?`, [id]);
+export async function deleteCategory(userId: number, id: number): Promise<void> {
+  await run(`UPDATE channels SET categoryId = NULL WHERE categoryId = ? AND userId = ?`, [
+    id,
+    userId,
+  ]);
+  await run(`DELETE FROM categories WHERE id = ? AND userId = ?`, [id, userId]);
 }
 
-export async function countChannelsByCategory(): Promise<Record<number, number>> {
+export async function countChannelsByCategory(userId: number): Promise<Record<number, number>> {
   const rows = await all<{ categoryId: number; count: number }>(
-    `SELECT categoryId, COUNT(*) as count FROM channels WHERE categoryId IS NOT NULL GROUP BY categoryId`
+    `SELECT categoryId, COUNT(*) as count FROM channels WHERE categoryId IS NOT NULL AND userId = ? GROUP BY categoryId`,
+    [userId]
   );
   const result: Record<number, number> = {};
   for (const row of rows) {

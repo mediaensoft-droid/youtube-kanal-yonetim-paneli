@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
+import { getSessionUserId } from "@/lib/auth";
 import { getChannelById, updateChannelYouTubeData } from "@/lib/db/channels";
 import { createSnapshot } from "@/lib/db/snapshots";
 import { fetchChannelData, ChannelResolutionError, ChannelApiError } from "@/lib/youtube";
@@ -11,6 +12,9 @@ interface RouteContext {
 }
 
 export async function POST(_req: NextRequest, { params }: RouteContext) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return errorResponse(500, "YOUTUBE_API_KEY tanımlı değil. .env.local dosyasını kontrol edin.");
@@ -18,12 +22,12 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
 
   const { id } = await params;
   const channelId = Number(id);
-  const existing = await getChannelById(channelId);
+  const existing = await getChannelById(userId, channelId);
   if (!existing) return errorResponse(404, "Kanal bulunamadı");
 
   try {
     const data = await fetchChannelData(existing.youtubeId, apiKey);
-    const channel = await updateChannelYouTubeData(channelId, {
+    const channel = await updateChannelYouTubeData(userId, channelId, {
       name: data.title,
       thumbnailUrl: data.thumbnailUrl,
       subscriberCount: data.subscriberCount,

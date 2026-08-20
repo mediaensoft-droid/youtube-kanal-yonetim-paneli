@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
-import { listChannels, updateChannelYouTubeData } from "@/lib/db/channels";
+import { listAllChannelsForRefresh, updateChannelYouTubeData } from "@/lib/db/channels";
 import { createSnapshot } from "@/lib/db/snapshots";
 import { fetchChannelData, ChannelApiError } from "@/lib/youtube";
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return errorResponse(500, "YOUTUBE_API_KEY tanımlı değil.");
   }
 
-  const channels = await listChannels();
+  const channels = await listAllChannelsForRefresh();
   let succeeded = 0;
   let failed = 0;
   let quotaExceeded = false;
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   for (const channel of channels) {
     try {
       const data = await fetchChannelData(channel.youtubeId, apiKey);
-      await updateChannelYouTubeData(channel.id, {
+      await updateChannelYouTubeData(channel.userId, channel.id, {
         name: data.title,
         thumbnailUrl: data.thumbnailUrl,
         subscriberCount: data.subscriberCount,

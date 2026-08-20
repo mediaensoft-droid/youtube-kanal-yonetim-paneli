@@ -103,6 +103,132 @@ async function bootstrapSchema(): Promise<void> {
   }
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_conceptId ON channels(conceptId)`);
 
+  // Multi-tenant migration: a `users` table plus per-row ownership on channels/categories/concepts.
+  // SQLite can't alter a UNIQUE constraint in place, so youtubeId/name uniqueness moves from
+  // globally-unique to composite (userId, youtubeId)/(userId, name) via a full table rebuild —
+  // this only runs once per database, guarded by the presence of the `userId` column.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      email     TEXT NOT NULL UNIQUE,
+      name      TEXT,
+      image     TEXT,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+
+  const channelsInfo = await db.execute(`PRAGMA table_info(channels)`);
+  const categoriesInfo = await db.execute(`PRAGMA table_info(categories)`);
+  const conceptsInfo = await db.execute(`PRAGMA table_info(concepts)`);
+  const channelsNeedUserId = !channelsInfo.rows.some((row) => row.name === "userId");
+  const categoriesNeedUserId = !categoriesInfo.rows.some((row) => row.name === "userId");
+  const conceptsNeedUserId = !conceptsInfo.rows.some((row) => row.name === "userId");
+
+  if (channelsNeedUserId || categoriesNeedUserId || conceptsNeedUserId) {
+    try {
+      await db.executeMultiple(`PRAGMA foreign_keys = OFF;`);
+    } catch {
+      // ignore — remote (Turso) connections may reject local pragmas
+    }
+
+    if (channelsNeedUserId) {
+      await db.executeMultiple(`
+        CREATE TABLE channels_new (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId           INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          youtubeId        TEXT NOT NULL,
+          url              TEXT NOT NULL,
+          name             TEXT NOT NULL,
+          thumbnailUrl     TEXT NOT NULL,
+          subscriberCount  INTEGER,
+          videoCount       INTEGER,
+          viewCount        INTEGER,
+          categoryId       INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+          conceptId        INTEGER REFERENCES concepts(id) ON DELETE SET NULL,
+          languages        TEXT NOT NULL DEFAULT '[]',
+          countries        TEXT NOT NULL DEFAULT '[]',
+          notes            TEXT,
+          lastRefreshedAt  TEXT,
+          createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+          updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+          UNIQUE(userId, youtubeId)
+        );
+        INSERT INTO channels_new
+          (id, userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
+           categoryId, conceptId, languages, countries, notes, lastRefreshedAt, createdAt, updatedAt)
+        SELECT id, NULL, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
+               categoryId, conceptId, languages, countries, notes, lastRefreshedAt, createdAt, updatedAt
+        FROM channels;
+        DROP TABLE channels;
+        ALTER TABLE channels_new RENAME TO channels;
+        CREATE INDEX IF NOT EXISTS idx_channels_categoryId ON channels(categoryId);
+        CREATE INDEX IF NOT EXISTS idx_channels_conceptId ON channels(conceptId);
+        CREATE INDEX IF NOT EXISTS idx_channels_name ON channels(name COLLATE NOCASE);
+        CREATE INDEX IF NOT EXISTS idx_channels_userId ON channels(userId);
+      `);
+    }
+
+    if (categoriesNeedUserId) {
+      await db.executeMultiple(`
+        CREATE TABLE categories_new (
+          id        INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          name      TEXT NOT NULL,
+          color     TEXT NOT NULL,
+          createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+          UNIQUE(userId, name)
+        );
+        INSERT INTO categories_new (id, userId, name, color, createdAt)
+        SELECT id, NULL, name, color, createdAt FROM categories;
+        DROP TABLE categories;
+        ALTER TABLE categories_new RENAME TO categories;
+        CREATE INDEX IF NOT EXISTS idx_categories_userId ON categories(userId);
+      `);
+    }
+
+    if (conceptsNeedUserId) {
+      await db.executeMultiple(`
+        CREATE TABLE concepts_new (
+          id        INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId    INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          name      TEXT NOT NULL,
+          color     TEXT NOT NULL,
+          createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+          UNIQUE(userId, name)
+        );
+        INSERT INTO concepts_new (id, userId, name, color, createdAt)
+        SELECT id, NULL, name, color, createdAt FROM concepts;
+        DROP TABLE concepts;
+        ALTER TABLE concepts_new RENAME TO concepts;
+        CREATE INDEX IF NOT EXISTS idx_concepts_userId ON concepts(userId);
+      `);
+    }
+
+    try {
+      await db.executeMultiple(`PRAGMA foreign_keys = ON;`);
+    } catch {
+      // ignore
+    }
+  }
+
+  // One-time production data-ownership backfill: pre-multi-tenancy rows (userId IS NULL) are
+  // attached to the operator's own account so existing data isn't orphaned. Safe to run every
+  // cold start — a no-op once every row has an owner.
+  const ownerEmail = process.env.OWNER_EMAIL;
+  if (ownerEmail) {
+    const existingOwner = await db.execute(`SELECT id FROM users WHERE email = ?`, [ownerEmail]);
+    let ownerId: number;
+    if (existingOwner.rows.length > 0) {
+      ownerId = Number(existingOwner.rows[0].id);
+    } else {
+      const inserted = await db.execute(`INSERT INTO users (email) VALUES (?)`, [ownerEmail]);
+      ownerId = Number(inserted.lastInsertRowid);
+    }
+    await db.execute(`UPDATE channels SET userId = ? WHERE userId IS NULL`, [ownerId]);
+    await db.execute(`UPDATE categories SET userId = ? WHERE userId IS NULL`, [ownerId]);
+    await db.execute(`UPDATE concepts SET userId = ? WHERE userId IS NULL`, [ownerId]);
+  }
+
   // Channels created before the growth-trend feature existed have no snapshot history yet;
   // backfill one initial snapshot from their current stats so a trend line can start forming.
   await db.execute(`

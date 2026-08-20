@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
+import { getSessionUserId } from "@/lib/auth";
 import { updateConceptSchema } from "@/lib/validation";
 import { getConceptById, updateConcept, deleteConcept } from "@/lib/db/concepts";
 
@@ -10,9 +11,12 @@ interface RouteContext {
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const { id } = await params;
   const conceptId = Number(id);
-  const existing = await getConceptById(conceptId);
+  const existing = await getConceptById(userId, conceptId);
   if (!existing) return errorResponse(404, "Konsept bulunamadı");
 
   const json = await req.json().catch(() => null);
@@ -22,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const concept = await updateConcept(conceptId, parsed.data);
+    const concept = await updateConcept(userId, conceptId, parsed.data);
     return okResponse(concept);
   } catch {
     return errorResponse(409, "Bu isimde bir konsept zaten var.");
@@ -30,11 +34,14 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const { id } = await params;
   const conceptId = Number(id);
-  const existing = await getConceptById(conceptId);
+  const existing = await getConceptById(userId, conceptId);
   if (!existing) return errorResponse(404, "Konsept bulunamadı");
 
-  await deleteConcept(conceptId);
+  await deleteConcept(userId, conceptId);
   return new Response(null, { status: 204 });
 }

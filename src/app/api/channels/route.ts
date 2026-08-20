@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
+import { getSessionUserId } from "@/lib/auth";
 import { createChannelSchema } from "@/lib/validation";
 import {
   listChannels,
@@ -18,11 +19,14 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const { searchParams } = new URL(req.url);
   const categoryIdParam = searchParams.get("categoryId");
   const conceptIdParam = searchParams.get("conceptId");
 
-  const channels = await listChannels({
+  const channels = await listChannels(userId, {
     categoryId: categoryIdParam ? Number(categoryIdParam) : undefined,
     conceptId: conceptIdParam ? Number(conceptIdParam) : undefined,
     language: searchParams.get("language") ?? undefined,
@@ -34,6 +38,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return errorResponse(500, "YOUTUBE_API_KEY tanımlı değil. .env.local dosyasını kontrol edin.");
@@ -49,14 +56,14 @@ export async function POST(req: NextRequest) {
   try {
     const channelId = await resolveToChannelId(input, apiKey);
 
-    const existing = await getChannelByYoutubeId(channelId);
+    const existing = await getChannelByYoutubeId(userId, channelId);
     if (existing) {
       return errorResponse(409, "Bu kanal zaten listeye eklenmiş.");
     }
 
     const data = await fetchChannelData(channelId, apiKey);
 
-    const channel = await createChannel({
+    const channel = await createChannel(userId, {
       youtubeId: data.channelId,
       url: canonicalChannelUrl(data.channelId),
       name: data.title,

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
+import { getSessionUserId } from "@/lib/auth";
 import { updateCategorySchema } from "@/lib/validation";
 import { getCategoryById, updateCategory, deleteCategory } from "@/lib/db/categories";
 
@@ -10,9 +11,12 @@ interface RouteContext {
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const { id } = await params;
   const categoryId = Number(id);
-  const existing = await getCategoryById(categoryId);
+  const existing = await getCategoryById(userId, categoryId);
   if (!existing) return errorResponse(404, "Kategori bulunamadı");
 
   const json = await req.json().catch(() => null);
@@ -22,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   try {
-    const category = await updateCategory(categoryId, parsed.data);
+    const category = await updateCategory(userId, categoryId, parsed.data);
     return okResponse(category);
   } catch {
     return errorResponse(409, "Bu isimde bir kategori zaten var.");
@@ -30,11 +34,14 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const { id } = await params;
   const categoryId = Number(id);
-  const existing = await getCategoryById(categoryId);
+  const existing = await getCategoryById(userId, categoryId);
   if (!existing) return errorResponse(404, "Kategori bulunamadı");
 
-  await deleteCategory(categoryId);
+  await deleteCategory(userId, categoryId);
   return new Response(null, { status: 204 });
 }

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
+import { getSessionUserId } from "@/lib/auth";
 import { getChannelById } from "@/lib/db/channels";
 import { fetchChannelDetails, ChannelResolutionError, ChannelApiError } from "@/lib/youtube";
 
@@ -10,13 +11,16 @@ interface RouteContext {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteContext) {
+  const userId = await getSessionUserId();
+  if (!userId) return errorResponse(401, "Unauthorized");
+
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return errorResponse(500, "YOUTUBE_API_KEY tanımlı değil. .env.local dosyasını kontrol edin.");
   }
 
   const { id } = await params;
-  const channel = await getChannelById(Number(id));
+  const channel = await getChannelById(userId, Number(id));
   if (!channel) return errorResponse(404, "Kanal bulunamadı");
 
   try {

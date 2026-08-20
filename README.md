@@ -36,6 +36,8 @@ Next.js (App Router) + Tailwind CSS + `@libsql/client` (SQLite/Turso) + Recharts
 - **Kanal Detayı** (`/channels/[id]`): kanal açıklaması, katılım tarihi, ortalama izlenme, yükleme sıklığı, son videolar, **abone/görüntülenme büyüme trendi grafiği**.
 - **Kategoriler** (`/categories`) / **Konseptler** (`/concepts`): ekle/düzenle/sil, renk seçimi.
 - **Otomatik günlük yenileme**: Vercel Cron ile her gün tüm kanalların istatistikleri otomatik çekilip bir "anlık görüntü" (snapshot) olarak kaydedilir — trend grafiklerinin verisi buradan gelir. Manuel "Yenile" butonu da her tıklamada bir anlık görüntü ekler.
+- **Çoklu kullanıcı**: Google ile giriş yapılır (`/sign-in`); her kullanıcı sadece kendi eklediği kanal/kategori/konseptleri görür. YouTube API anahtarı tüm kullanıcılar arasında paylaşılır (bkz. Faz B8 planı).
+- **PWA**: Site mobilde "Ana Ekrana Ekle" ile gerçek bir uygulama gibi kurulabilir (`public/manifest.json`, `src/app/layout.tsx`).
 
 ## Veri Katmanı
 
@@ -70,7 +72,11 @@ Sıfırdan kurulum yapılacaksa:
    - `TURSO_DATABASE_URL`
    - `TURSO_AUTH_TOKEN`
    - `CRON_SECRET` — rastgele bir değer (örn. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`); `/api/cron/refresh-channels` uç noktasını yetkisiz çağrılardan korur, Vercel Cron bunu otomatik `Authorization: Bearer` başlığı olarak gönderir.
+   - `AUTH_SECRET` — rastgele bir değer (yukarıdaki komutla üretilebilir); Auth.js oturum (JWT) şifrelemesi için gerekli.
+   - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — [Google Cloud Console](https://console.cloud.google.com/apis/credentials) üzerinden oluşturulan bir "OAuth client ID" (Web application) kimlik bilgileri. Authorized redirect URI olarak `https://<site-domain>/api/auth/callback/google` eklenmeli.
+   - `OWNER_EMAIL` — mevcut (sahipsiz) kanal/kategori/konsept verisini ilk deploy'da otomatik olarak bu e-postaya bağlar. Sadece bir kereliğine gereklidir, sonrasında kaldırılabilir.
 4. Deploy edin. `vercel.json` içindeki `crons` tanımı, günlük otomatik yenilemeyi otomatik olarak devreye alır.
+5. Deploy tamamlandıktan sonra `OWNER_EMAIL` ile belirttiğiniz Google hesabıyla `/sign-in` üzerinden giriş yapın — mevcut verileriniz otomatik olarak hesabınıza bağlanmış olacak.
 
 ## Komutlar
 

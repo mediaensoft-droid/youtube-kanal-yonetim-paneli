@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import clsx from "clsx";
-import { LayoutDashboard, Tv, Layers, Lightbulb, Menu, X } from "lucide-react";
+import { LayoutDashboard, Tv, Layers, Lightbulb, Menu, X, LogOut } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -25,6 +26,7 @@ function BrandMark() {
 export function Nav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
@@ -55,6 +57,31 @@ export function Nav() {
           })}
         </div>
 
+        {session?.user && (
+          <div className="hidden items-center gap-2 border-l border-line pl-3 ml-1 sm:flex">
+            {session.user.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={session.user.image}
+                alt={session.user.name ?? session.user.email ?? "Kullanıcı"}
+                className="h-7 w-7 rounded-full"
+              />
+            ) : (
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-hover text-xs text-ink-muted">
+                {(session.user.name ?? session.user.email ?? "?").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => signOut({ redirectTo: "/sign-in" })}
+              aria-label="Çıkış yap"
+              className="flex items-center justify-center rounded-md p-1.5 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={() => setMenuOpen((o) => !o)}
@@ -84,6 +111,16 @@ export function Nav() {
               </Link>
             );
           })}
+          {session?.user && (
+            <button
+              type="button"
+              onClick={() => signOut({ redirectTo: "/sign-in" })}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+            >
+              <LogOut className="h-4 w-4" />
+              Çıkış yap
+            </button>
+          )}
         </div>
       )}
     </nav>

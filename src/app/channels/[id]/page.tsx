@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Users, Video, Eye } from "lucide-react";
+import { getSessionUserId } from "@/lib/auth";
 import { getChannelById } from "@/lib/db/channels";
 import { getCategoryById } from "@/lib/db/categories";
 import { getConceptById } from "@/lib/db/concepts";
@@ -19,13 +20,16 @@ interface PageProps {
 }
 
 export default async function ChannelDetailPage({ params }: PageProps) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/sign-in");
+
   const { id } = await params;
-  const channel = await getChannelById(Number(id));
+  const channel = await getChannelById(userId, Number(id));
   if (!channel) notFound();
 
   const [category, concept, snapshots] = await Promise.all([
-    channel.categoryId ? getCategoryById(channel.categoryId) : undefined,
-    channel.conceptId ? getConceptById(channel.conceptId) : undefined,
+    channel.categoryId ? getCategoryById(userId, channel.categoryId) : undefined,
+    channel.conceptId ? getConceptById(userId, channel.conceptId) : undefined,
     listSnapshots(channel.id),
   ]);
 

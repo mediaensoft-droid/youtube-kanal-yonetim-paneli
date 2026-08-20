@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { Tv, Layers, Globe2, MapPin } from "lucide-react";
+import { getSessionUserId } from "@/lib/auth";
 import { listChannels } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
 import { countByCategory, countByLanguage, countByCountry } from "@/lib/stats";
@@ -10,7 +12,10 @@ import { CountryDistributionChart } from "@/components/charts/CountryDistributio
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [channels, categories] = await Promise.all([listChannels(), listCategories()]);
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/sign-in");
+
+  const [channels, categories] = await Promise.all([listChannels(userId), listCategories(userId)]);
 
   const categoryData = countByCategory(channels, categories);
   const languageData = countByLanguage(channels);
