@@ -20,7 +20,7 @@ function PlayBadge({ width, className }: IconProps) {
 }
 
 const ICON_POOL = [PlayBadge, Play, ThumbsUp, Bell, MessageCircle, Share2, Eye];
-const ICON_COUNT = 30;
+const ICON_COUNT = 100;
 
 // Deterministic pseudo-random scatter (no Math.random) so server- and client-rendered output match.
 function seeded(seed: number): number {
@@ -111,7 +111,7 @@ export function BackgroundDecor() {
             <def.Icon
               width={def.size}
               height={def.size}
-              className="text-brand/[0.14]"
+              className="text-white/[0.14]"
               strokeWidth={1.5}
             />
           </div>
