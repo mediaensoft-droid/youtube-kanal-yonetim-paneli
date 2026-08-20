@@ -102,3 +102,37 @@ body {
 input[type="color"] {
   color-scheme: dark;
 }
+
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, 40px) scale(1.12); }
+}
+
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-55px, 35px) scale(1.08); }
+}
+
+@keyframes drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(45px, -50px) scale(1.1); }
+}
+
+@keyframes float-icon {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-16px) rotate(6deg); }
+}
+
+.animate-drift-a { animation: drift-a 22s ease-in-out infinite; }
+.animate-drift-b { animation: drift-b 27s ease-in-out infinite; }
+.animate-drift-c { animation: drift-c 25s ease-in-out infinite; }
+.animate-float-icon { animation: float-icon 16s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drift-a,
+  .animate-drift-b,
+  .animate-drift-c,
+  .animate-float-icon {
+    animation: none;
+  }
+}
