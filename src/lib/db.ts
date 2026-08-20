@@ -117,6 +117,22 @@ async function bootstrapSchema(): Promise<void> {
     )
   `);
 
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId                INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      plan                  TEXT NOT NULL DEFAULT 'pro',
+      status                TEXT NOT NULL DEFAULT 'trialing',
+      iyzicoSubscriptionRef TEXT,
+      iyzicoCustomerRef     TEXT,
+      currentPeriodEnd      TEXT,
+      trialEndsAt           TEXT,
+      createdAt             TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt             TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_subscriptions_userId ON subscriptions(userId)`);
+
   const channelsInfo = await db.execute(`PRAGMA table_info(channels)`);
   const categoriesInfo = await db.execute(`PRAGMA table_info(categories)`);
   const conceptsInfo = await db.execute(`PRAGMA table_info(concepts)`);

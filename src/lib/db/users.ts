@@ -13,6 +13,10 @@ export async function getUserByEmail(email: string): Promise<AppUser | undefined
   return get<AppUser>(`SELECT * FROM users WHERE email = ?`, [email]);
 }
 
+export async function getUserById(id: number): Promise<AppUser | undefined> {
+  return get<AppUser>(`SELECT * FROM users WHERE id = ?`, [id]);
+}
+
 export async function getOrCreateUserByEmail(
   email: string,
   name: string | null,

@@ -39,3 +39,13 @@ export const updateConceptSchema = z.object({
   name: z.string().trim().min(1).optional(),
   color: hexColor.optional(),
 });
+
+export const billingCheckoutSchema = z.object({
+  name: z.string().trim().min(1, "Ad gerekli"),
+  surname: z.string().trim().min(1, "Soyad gerekli"),
+  gsmNumber: z.string().trim().min(10, "Geçerli bir telefon numarası girin"),
+  identityNumber: z.string().trim().regex(/^\d{11}$/, "TC Kimlik No 11 haneli olmalı"),
+  address: z.string().trim().min(5, "Adres gerekli"),
+  city: z.string().trim().min(1, "Şehir gerekli"),
+  zipCode: z.string().trim().optional(),
+});

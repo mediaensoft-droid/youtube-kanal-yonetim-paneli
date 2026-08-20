@@ -37,6 +37,7 @@ Next.js (App Router) + Tailwind CSS + `@libsql/client` (SQLite/Turso) + Recharts
 - **Kategoriler** (`/categories`) / **Konseptler** (`/concepts`): ekle/düzenle/sil, renk seçimi.
 - **Otomatik günlük yenileme**: Vercel Cron ile her gün tüm kanalların istatistikleri otomatik çekilip bir "anlık görüntü" (snapshot) olarak kaydedilir — trend grafiklerinin verisi buradan gelir. Manuel "Yenile" butonu da her tıklamada bir anlık görüntü ekler.
 - **Çoklu kullanıcı**: Google ile giriş yapılır (`/sign-in`); her kullanıcı sadece kendi eklediği kanal/kategori/konseptleri görür. YouTube API anahtarı tüm kullanıcılar arasında paylaşılır (bkz. Faz B8 planı).
+- **Ücretli üyelik** (`/billing`): Her yeni kullanıcı 7 günlük ücretsiz deneme ile başlar; deneme bitince kanal ekleme/yenileme kilitlenir (mevcut kanalları görüntülemek serbest kalır). Ödeme [iyzico](https://www.iyzico.com) Abonelik API'si ile alınır. `OWNER_EMAIL` ile eşleşen hesap üyelik kısıtlamasından muaf tutulur.
 - **PWA**: Site mobilde "Ana Ekrana Ekle" ile gerçek bir uygulama gibi kurulabilir (`public/manifest.json`, `src/app/layout.tsx`).
 
 ## Veri Katmanı
@@ -59,6 +60,19 @@ Veritabanı bağlantısı [`@libsql/client`](https://github.com/tursodatabase/li
    ```
 3. Çıkan `URL` değerini `TURSO_DATABASE_URL`, token değerini `TURSO_AUTH_TOKEN` olarak Vercel proje ayarlarındaki **Environment Variables** kısmına ekleyin (`YOUTUBE_API_KEY` ile birlikte).
 
+### iyzico kurulumu (ücretli üyelik için)
+
+1. Sandbox (test) hesabı için [sandbox-merchant.iyzipay.com](https://sandbox-merchant.iyzipay.com/) üzerinden ücretsiz bir geliştirici hesabı açın — gerçek şirket/banka bilgisi gerektirmez. **Gerçek (production) ödeme almak için** ayrıca [iyzico.com](https://www.iyzico.com) üzerinden şirket/banka bilgilerinizle bir **merchant hesabı** açmanız gerekir; bu adımı sadece hesap sahibi tamamlayabilir.
+2. Merchant panelinden **Ayarlar > API Anahtarları** kısmından `API Key`, `Secret Key` ve `Merchant ID` değerlerini alın.
+3. Bir kereliğine ürün + fiyat planı oluşturun:
+   ```bash
+   IYZICO_API_KEY=... IYZICO_SECRET_KEY=... IYZICO_BASE_URL=https://sandbox-api.iyzipay.com \
+     node scripts/setup-iyzico-plan.mjs
+   ```
+   Çıktıdaki `IYZICO_PRICING_PLAN_REF_CODE` değerini not edin. Production'a geçerken bu script'i `IYZICO_BASE_URL=https://api.iyzipay.com` ile tekrar çalıştırıp yeni bir referans kodu almanız gerekir (sandbox ve production'ın ürün/plan kayıtları ayrıdır).
+4. Merchant panelinden **Ayarlar > Merchant Bildirimleri** kısmına webhook URL'inizi ekleyin: `https://<site-domain>/api/billing/webhook`.
+5. Tüm `IYZICO_*` değerlerini Vercel ortam değişkenlerine ekleyin (aşağıya bakın).
+
 ## Vercel'e Deploy
 
 Proje GitHub'a bağlı ve Vercel'de otomatik deploy etkin: `main` branch'ine yapılan her `git push`, production'a otomatik olarak deploy edilir. Ayrıca `vercel --prod` komutuna gerek yoktur.
@@ -75,6 +89,7 @@ Sıfırdan kurulum yapılacaksa:
    - `AUTH_SECRET` — rastgele bir değer (yukarıdaki komutla üretilebilir); Auth.js oturum (JWT) şifrelemesi için gerekli.
    - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — [Google Cloud Console](https://console.cloud.google.com/apis/credentials) üzerinden oluşturulan bir "OAuth client ID" (Web application) kimlik bilgileri. Authorized redirect URI olarak `https://<site-domain>/api/auth/callback/google` eklenmeli.
    - `OWNER_EMAIL` — mevcut (sahipsiz) kanal/kategori/konsept verisini ilk deploy'da otomatik olarak bu e-postaya bağlar. Sadece bir kereliğine gereklidir, sonrasında kaldırılabilir.
+   - `IYZICO_API_KEY` / `IYZICO_SECRET_KEY` / `IYZICO_MERCHANT_ID` / `IYZICO_PRICING_PLAN_REF_CODE` — yukarıdaki "iyzico kurulumu" adımlarından elde edilir.
 4. Deploy edin. `vercel.json` içindeki `crons` tanımı, günlük otomatik yenilemeyi otomatik olarak devreye alır.
 5. Deploy tamamlandıktan sonra `OWNER_EMAIL` ile belirttiğiniz Google hesabıyla `/sign-in` üzerinden giriş yapın — mevcut verileriniz otomatik olarak hesabınıza bağlanmış olacak.
 

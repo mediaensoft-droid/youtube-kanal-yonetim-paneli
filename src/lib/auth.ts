@@ -2,6 +2,7 @@ import "server-only";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { getOrCreateUserByEmail } from "@/lib/db/users";
+import { ensureTrialSubscription } from "@/lib/db/subscriptions";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -21,6 +22,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user?.email) {
         const dbUser = await getOrCreateUserByEmail(user.email, user.name ?? null, user.image ?? null);
+        await ensureTrialSubscription(dbUser.id);
         token.userId = dbUser.id;
       }
       return token;

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
+import { hasActiveAccess } from "@/lib/access";
 import { createChannelSchema } from "@/lib/validation";
 import {
   listChannels,
@@ -40,6 +41,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) return errorResponse(401, "Unauthorized");
+  if (!(await hasActiveAccess(userId))) {
+    return errorResponse(402, "Deneme süreniz doldu. Devam etmek için üyeliğinizi başlatın.");
+  }
 
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
