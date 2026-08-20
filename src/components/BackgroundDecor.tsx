@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useRef } from "react";
 import { Play, ThumbsUp, Bell, MessageCircle, Share2, Eye } from "lucide-react";
 
 interface IconProps {
@@ -19,46 +19,70 @@ function PlayBadge({ width, className }: IconProps) {
   );
 }
 
-const ICON_DEFS = [
-  { Icon: PlayBadge, left: 8, top: 14, size: 26 },
-  { Icon: Play, left: 24, top: 74, size: 18 },
-  { Icon: ThumbsUp, left: 60, top: 18, size: 20 },
-  { Icon: Bell, left: 84, top: 60, size: 20 },
-  { Icon: MessageCircle, left: 46, top: 48, size: 19 },
-  { Icon: Share2, left: 14, top: 46, size: 18 },
-  { Icon: Eye, left: 92, top: 16, size: 22 },
-  { Icon: PlayBadge, left: 36, top: 86, size: 22 },
-  { Icon: Play, left: 70, top: 90, size: 17 },
-  { Icon: ThumbsUp, left: 4, top: 62, size: 18 },
-  { Icon: Bell, left: 55, top: 78, size: 17 },
-  { Icon: MessageCircle, left: 78, top: 34, size: 19 },
-];
+const ICON_POOL = [PlayBadge, Play, ThumbsUp, Bell, MessageCircle, Share2, Eye];
+const ICON_COUNT = 30;
 
-const FLEE_DISTANCE = 55;
+// Deterministic pseudo-random scatter (no Math.random) so server- and client-rendered output match.
+function seeded(seed: number): number {
+  const v = Math.sin(seed * 12.9898) * 43758.5453;
+  return Math.abs(v - Math.floor(v));
+}
+
+const ICON_DEFS = Array.from({ length: ICON_COUNT }, (_, i) => ({
+  Icon: ICON_POOL[i % ICON_POOL.length],
+  left: 3 + seeded(i * 2 + 1) * 92,
+  top: 5 + seeded(i * 2 + 2) * 90,
+  size: 14 + (i % 5) * 3,
+}));
+
+const FLEE_RADIUS = 140;
+const FLEE_STRENGTH = 55;
 
 export function BackgroundDecor() {
-  const [offsets, setOffsets] = useState<Record<number, { x: number; y: number }>>({});
+  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  function handleEnter(i: number, e: ReactMouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = cx - e.clientX;
-    const dy = cy - e.clientY;
-    const dist = Math.hypot(dx, dy) || 1;
-    setOffsets((prev) => ({
-      ...prev,
-      [i]: { x: (dx / dist) * FLEE_DISTANCE, y: (dy / dist) * FLEE_DISTANCE },
-    }));
-  }
+  useEffect(() => {
+    let rafId: number | null = null;
+    let pointer: { x: number; y: number } | null = null;
 
-  function handleLeave(i: number) {
-    setOffsets((prev) => {
-      const next = { ...prev };
-      delete next[i];
-      return next;
-    });
-  }
+    function applyFlee() {
+      rafId = null;
+      if (!pointer) return;
+      const { x, y } = pointer;
+      const { innerWidth, innerHeight } = window;
+
+      iconRefs.current.forEach((el, i) => {
+        if (!el) return;
+        const def = ICON_DEFS[i];
+        const baseX = (def.left / 100) * innerWidth;
+        const baseY = (def.top / 100) * innerHeight;
+        const dx = baseX - x;
+        const dy = baseY - y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < FLEE_RADIUS && dist > 0.01) {
+          const push = (1 - dist / FLEE_RADIUS) * FLEE_STRENGTH;
+          el.style.transform = `translate(${(dx / dist) * push}px, ${(dy / dist) * push}px)`;
+        } else {
+          el.style.transform = "";
+        }
+      });
+    }
+
+    function handleMouseMove(e: MouseEvent) {
+      pointer = { x: e.clientX, y: e.clientY };
+      if (rafId === null) rafId = requestAnimationFrame(applyFlee);
+    }
+
+    // Tracks the cursor at the document level rather than per-icon hover: the icons sit behind
+    // the page content (-z-10), so foreground elements would otherwise intercept every pointer
+    // event before it ever reached them.
+    document.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
@@ -68,37 +92,31 @@ export function BackgroundDecor() {
       <div className="animate-drift-b absolute top-1/3 -right-40 h-72 w-72 rounded-full bg-brand/[0.06] blur-[100px]" />
       <div className="animate-drift-c absolute -bottom-40 left-1/3 h-72 w-72 rounded-full bg-red-700/[0.08] blur-[100px]" />
 
-      {ICON_DEFS.map((def, i) => {
-        const offset = offsets[i];
-        return (
+      {ICON_DEFS.map((def, i) => (
+        <div
+          key={i}
+          ref={(el) => {
+            iconRefs.current[i] = el;
+          }}
+          className="absolute transition-transform duration-200 ease-out"
+          style={{ left: `${def.left}%`, top: `${def.top}%` }}
+        >
           <div
-            key={i}
-            className="pointer-events-auto absolute cursor-default transition-transform duration-300 ease-out"
+            className="animate-float-icon"
             style={{
-              left: `${def.left}%`,
-              top: `${def.top}%`,
-              transform: offset ? `translate(${offset.x}px, ${offset.y}px)` : undefined,
+              animationDelay: `${(i % 6) * 0.6}s`,
+              animationDuration: `${15 + (i % 5) * 2}s`,
             }}
-            onMouseEnter={(e) => handleEnter(i, e)}
-            onMouseLeave={() => handleLeave(i)}
           >
-            <div
-              className="animate-float-icon"
-              style={{
-                animationDelay: `${(i % 6) * 0.6}s`,
-                animationDuration: `${15 + (i % 5) * 2}s`,
-              }}
-            >
-              <def.Icon
-                width={def.size}
-                height={def.size}
-                className="text-brand/[0.16]"
-                strokeWidth={1.5}
-              />
-            </div>
+            <def.Icon
+              width={def.size}
+              height={def.size}
+              className="text-brand/[0.14]"
+              strokeWidth={1.5}
+            />
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
