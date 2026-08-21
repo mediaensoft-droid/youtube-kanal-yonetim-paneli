@@ -106,6 +106,7 @@ export interface CheckoutFormResult {
   subscriptionReferenceCode?: string;
   customerReferenceCode?: string;
   parentReferenceCode?: string;
+  conversationId?: string;
 }
 
 export async function retrieveSubscriptionCheckoutForm(token: string): Promise<CheckoutFormResult> {

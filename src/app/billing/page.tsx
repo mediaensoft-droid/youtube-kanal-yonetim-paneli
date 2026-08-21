@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { CreditCard, CheckCircle2 } from "lucide-react";
+import { CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { getSubscriptionByUserId } from "@/lib/db/subscriptions";
 import { hasActiveAccess } from "@/lib/access";
@@ -15,9 +15,15 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: "İptal edildi",
 };
 
-export default async function BillingPage() {
+interface PageProps {
+  searchParams: Promise<{ status?: string }>;
+}
+
+export default async function BillingPage({ searchParams }: PageProps) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/sign-in");
+
+  const { status } = await searchParams;
 
   const [subscription, active] = await Promise.all([
     getSubscriptionByUserId(userId),
@@ -27,6 +33,19 @@ export default async function BillingPage() {
   return (
     <div className="animate-fade-in-up mx-auto max-w-xl">
       <h1 className="mb-6 text-2xl font-semibold text-ink">Üyelik</h1>
+
+      {status === "success" && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/40 p-4 text-sm text-emerald-300">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          Ödemeniz alındı, Pro plan aktif edildi.
+        </div>
+      )}
+      {status === "error" && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/40 p-4 text-sm text-red-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          Ödeme tamamlanamadı ya da onaylanamadı. Lütfen tekrar deneyin.
+        </div>
+      )}
 
       <div className="rounded-lg border border-line bg-surface p-5">
         <div className="flex items-center gap-2">

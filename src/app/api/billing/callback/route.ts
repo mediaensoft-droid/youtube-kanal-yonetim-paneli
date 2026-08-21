@@ -6,7 +6,11 @@ import { updateSubscription } from "@/lib/db/subscriptions";
 export const dynamic = "force-dynamic";
 
 // iyzico redirects the customer's browser here (POSTing `token`) after the hosted checkout
-// form is submitted. We look up the real result server-side rather than trusting the redirect.
+// form is submitted. This is a cross-site POST from iyzico's own domain, so the SameSite=Lax
+// session cookie is NOT sent along with it — we can't rely on getSessionUserId() here. Instead
+// we identify the user via `conversationId`, which we set to the userId when initializing the
+// checkout form (see /api/billing/checkout) and iyzico echoes back on every response. The
+// session lookup is kept only as a defensive fallback.
 export async function POST(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const formData = await req.formData().catch(() => null);
@@ -16,10 +20,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(`${origin}/billing?status=error`);
   }
 
-  const userId = await getSessionUserId();
-
   try {
     const result = await retrieveSubscriptionCheckoutForm(token);
+    const userId = Number(result.conversationId) || (await getSessionUserId());
+
     if (userId && result.status === "success" && result.subscriptionReferenceCode) {
       await updateSubscription(userId, {
         status: "active",
