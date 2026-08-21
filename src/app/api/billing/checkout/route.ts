@@ -6,6 +6,13 @@ import { initializeSubscriptionCheckoutForm, IyzicoApiError } from "@/lib/iyzico
 
 export const dynamic = "force-dynamic";
 
+// iyzico expects gsmNumber in +90XXXXXXXXXX (E.164-style) form, not a bare local number.
+function normalizeGsmNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  const local = digits.startsWith("90") ? digits.slice(2) : digits.replace(/^0/, "");
+  return `+90${local}`;
+}
+
 export async function POST(req: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) return errorResponse(401, "Unauthorized");
@@ -37,7 +44,7 @@ export async function POST(req: NextRequest) {
         name,
         surname,
         email,
-        gsmNumber,
+        gsmNumber: normalizeGsmNumber(gsmNumber),
         identityNumber,
         billingAddress: {
           contactName: `${name} ${surname}`,
