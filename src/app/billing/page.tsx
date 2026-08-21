@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { getSubscriptionByUserId } from "@/lib/db/subscriptions";
-import { hasActiveAccess } from "@/lib/access";
+import { hasActiveAccess, getChannelLimit } from "@/lib/access";
+import { countChannelsForUser } from "@/lib/db/channels";
 import { formatDate } from "@/lib/format";
-import { CheckoutForm } from "@/components/billing/CheckoutForm";
+import { getPlan, type PlanId } from "@/lib/plans";
+import { PricingTable } from "@/components/billing/PricingTable";
 
 export const dynamic = "force-dynamic";
 
@@ -25,19 +27,28 @@ export default async function BillingPage({ searchParams }: PageProps) {
 
   const { status } = await searchParams;
 
-  const [subscription, active] = await Promise.all([
+  const [subscription, active, channelLimit, channelCount] = await Promise.all([
     getSubscriptionByUserId(userId),
     hasActiveAccess(userId),
+    getChannelLimit(userId),
+    countChannelsForUser(userId),
   ]);
 
+  const currentPlanId: PlanId =
+    subscription?.status === "active" &&
+    (["standart", "pro", "ultra"] as PlanId[]).includes(subscription.plan as PlanId)
+      ? (subscription.plan as PlanId)
+      : "free";
+  const currentPlanName = getPlan(currentPlanId).name;
+
   return (
-    <div className="animate-fade-in-up mx-auto max-w-xl">
+    <div className="animate-fade-in-up mx-auto max-w-5xl">
       <h1 className="mb-6 text-2xl font-semibold text-ink">Üyelik</h1>
 
       {status === "success" && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-900/60 bg-emerald-950/40 p-4 text-sm text-emerald-300">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          Ödemeniz alındı, Pro plan aktif edildi.
+          Ödemeniz alındı, planınız aktif edildi.
         </div>
       )}
       {status === "error" && (
@@ -56,6 +67,7 @@ export default async function BillingPage({ searchParams }: PageProps) {
           )}
           <span className="font-medium text-ink">
             Durum: {subscription ? (STATUS_LABELS[subscription.status] ?? subscription.status) : "—"}
+            {subscription?.status === "active" && ` — ${currentPlanName}`}
           </span>
         </div>
         {subscription?.status === "trialing" && subscription.trialEndsAt && (
@@ -63,23 +75,21 @@ export default async function BillingPage({ searchParams }: PageProps) {
             Deneme süreniz {formatDate(subscription.trialEndsAt)} tarihinde sona eriyor.
           </p>
         )}
-        {subscription?.status === "active" && (
-          <p className="mt-2 text-sm text-ink-muted">Pro plan aktif — kanal ekleme/yenileme sınırsız.</p>
-        )}
+        <p className="mt-2 text-sm text-ink-muted">
+          Kanal kullanımı: {channelCount}
+          {channelLimit !== null ? ` / ${channelLimit}` : " (sınırsız)"}
+        </p>
         {!active && (
           <p className="mt-2 text-sm text-ink-muted">
             Deneme süreniz doldu ya da aktif bir üyeliğiniz yok. Yeni kanal eklemek/yenilemek için
-            aşağıdan Pro plana geçebilirsiniz.
+            aşağıdan bir plana geçebilirsiniz.
           </p>
         )}
       </div>
 
-      {subscription?.status !== "active" && (
-        <div className="mt-6 rounded-lg border border-line bg-surface p-5">
-          <h2 className="mb-4 text-sm font-semibold text-ink-muted">Pro plana geç</h2>
-          <CheckoutForm />
-        </div>
-      )}
+      <div className="mt-6">
+        <PricingTable currentPlan={currentPlanId} currentStatus={subscription?.status ?? ""} />
+      </div>
     </div>
   );
 }

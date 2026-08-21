@@ -38,7 +38,7 @@ export async function ensureTrialSubscription(
 
   const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString();
   await run(
-    `INSERT INTO subscriptions (userId, plan, status, trialEndsAt) VALUES (?, 'pro', 'trialing', ?)
+    `INSERT INTO subscriptions (userId, plan, status, trialEndsAt) VALUES (?, 'free', 'trialing', ?)
      ON CONFLICT(userId) DO NOTHING`,
     [userId, trialEndsAt]
   );
@@ -46,6 +46,7 @@ export async function ensureTrialSubscription(
 }
 
 export interface SubscriptionUpdate {
+  plan?: string;
   status?: SubscriptionStatus;
   iyzicoSubscriptionRef?: string | null;
   iyzicoCustomerRef?: string | null;
@@ -59,6 +60,7 @@ export async function updateSubscription(
   await ensureTrialSubscription(userId);
   const existing = (await getSubscriptionByUserId(userId))!;
 
+  const plan = input.plan ?? existing.plan;
   const status = input.status ?? existing.status;
   const iyzicoSubscriptionRef =
     input.iyzicoSubscriptionRef !== undefined
@@ -71,10 +73,10 @@ export async function updateSubscription(
 
   await run(
     `UPDATE subscriptions
-       SET status = ?, iyzicoSubscriptionRef = ?, iyzicoCustomerRef = ?, currentPeriodEnd = ?,
+       SET plan = ?, status = ?, iyzicoSubscriptionRef = ?, iyzicoCustomerRef = ?, currentPeriodEnd = ?,
            updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE userId = ?`,
-    [status, iyzicoSubscriptionRef, iyzicoCustomerRef, currentPeriodEnd, userId]
+    [plan, status, iyzicoSubscriptionRef, iyzicoCustomerRef, currentPeriodEnd, userId]
   );
   return (await getSubscriptionByUserId(userId))!;
 }

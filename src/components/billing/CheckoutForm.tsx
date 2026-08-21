@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import type { PlanId } from "@/lib/plans";
 
 const CHECKOUT_FORM_CONTAINER_ID = "iyzipay-checkout-form";
 
@@ -28,7 +29,11 @@ function injectCheckoutFormContent(container: HTMLElement, html: string) {
   });
 }
 
-export function CheckoutForm() {
+interface CheckoutFormProps {
+  plan: Exclude<PlanId, "free">;
+}
+
+export function CheckoutForm({ plan }: CheckoutFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [formVisible, setFormVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,7 +54,7 @@ export function CheckoutForm() {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, surname, gsmNumber, identityNumber, address, city, zipCode }),
+        body: JSON.stringify({ plan, name, surname, gsmNumber, identityNumber, address, city, zipCode }),
       });
       const data = await res.json();
       if (!res.ok) {

@@ -48,3 +48,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Claude Code internal state (not project source)
+/.claude/

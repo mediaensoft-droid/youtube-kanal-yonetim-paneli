@@ -41,6 +41,7 @@ export const updateConceptSchema = z.object({
 });
 
 export const billingCheckoutSchema = z.object({
+  plan: z.enum(["standart", "pro", "ultra"]),
   name: z.string().trim().min(1, "Ad gerekli"),
   surname: z.string().trim().min(1, "Soyad gerekli"),
   gsmNumber: z.string().trim().min(10, "Geçerli bir telefon numarası girin"),

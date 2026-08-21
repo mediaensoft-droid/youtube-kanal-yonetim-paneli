@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
-import { hasActiveAccess } from "@/lib/access";
+import { hasActiveAccess, getChannelLimit } from "@/lib/access";
 import { createChannelSchema } from "@/lib/validation";
 import {
   listChannels,
   getChannelByYoutubeId,
   createChannel,
+  countChannelsForUser,
 } from "@/lib/db/channels";
 import { createSnapshot } from "@/lib/db/snapshots";
 import {
@@ -43,6 +44,17 @@ export async function POST(req: NextRequest) {
   if (!userId) return errorResponse(401, "Unauthorized");
   if (!(await hasActiveAccess(userId))) {
     return errorResponse(402, "Deneme süreniz doldu. Devam etmek için üyeliğinizi başlatın.");
+  }
+
+  const channelLimit = await getChannelLimit(userId);
+  if (channelLimit !== null) {
+    const currentCount = await countChannelsForUser(userId);
+    if (currentCount >= channelLimit) {
+      return errorResponse(
+        402,
+        `Plan kanal limitinize ulaştınız (${currentCount}/${channelLimit}). Daha fazla kanal eklemek için planınızı yükseltin.`
+      );
+    }
   }
 
   const apiKey = process.env.YOUTUBE_API_KEY;

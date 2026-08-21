@@ -87,6 +87,13 @@ export async function listAllChannelsForRefresh(): Promise<(Channel & { userId: 
   return rows.map((row) => ({ ...rowToChannel(row), userId: row.userId }));
 }
 
+export async function countChannelsForUser(userId: number): Promise<number> {
+  const row = await get<{ count: number }>(`SELECT COUNT(*) as count FROM channels WHERE userId = ?`, [
+    userId,
+  ]);
+  return row?.count ?? 0;
+}
+
 export async function getChannelById(userId: number, id: number): Promise<Channel | undefined> {
   const row = await get<ChannelRow>(`SELECT * FROM channels WHERE id = ? AND userId = ?`, [
     id,
