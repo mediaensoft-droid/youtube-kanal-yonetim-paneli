@@ -55,7 +55,7 @@ export default async function BillingPage() {
         )}
       </div>
 
-      {!active && (
+      {subscription?.status !== "active" && (
         <div className="mt-6 rounded-lg border border-line bg-surface p-5">
           <h2 className="mb-4 text-sm font-semibold text-ink-muted">Pro plana geç</h2>
           <CheckoutForm />
