@@ -52,3 +52,14 @@ export async function getChannelLimit(userId: number): Promise<number | null> {
   }
   return 0;
 }
+
+/** Ultra-only features (e.g. the channel analysis panel). Owner account is always allowed. */
+export async function hasUltraAccess(userId: number): Promise<boolean> {
+  const user = await getUserById(userId);
+  if (user && process.env.OWNER_EMAIL && user.email === process.env.OWNER_EMAIL) {
+    return true;
+  }
+
+  const sub = await getSubscriptionByUserId(userId);
+  return sub?.status === "active" && sub.plan === "ultra";
+}
