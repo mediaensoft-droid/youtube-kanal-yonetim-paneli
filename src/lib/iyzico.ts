@@ -103,10 +103,14 @@ export async function initializeSubscriptionCheckoutForm(params: {
 
 export interface CheckoutFormResult {
   status: string;
-  subscriptionReferenceCode?: string;
-  customerReferenceCode?: string;
-  parentReferenceCode?: string;
   conversationId?: string;
+  data?: {
+    referenceCode?: string;
+    parentReferenceCode?: string;
+    customerReferenceCode?: string;
+    subscriptionStatus?: string;
+    pricingPlanReferenceCode?: string;
+  };
 }
 
 export async function retrieveSubscriptionCheckoutForm(token: string): Promise<CheckoutFormResult> {

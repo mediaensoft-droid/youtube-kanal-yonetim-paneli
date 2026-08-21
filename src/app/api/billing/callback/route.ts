@@ -17,17 +17,16 @@ async function retrieveWithRetry(token: string): Promise<CheckoutFormResult> {
   for (const delayMs of [0, 700, 1500, 2500]) {
     if (delayMs) await sleep(delayMs);
     last = await retrieveSubscriptionCheckoutForm(token);
-    if (last.status === "success" && last.subscriptionReferenceCode) return last;
+    if (last.status === "success" && last.data?.referenceCode) return last;
   }
   return last!;
 }
 
 // iyzico redirects the customer's browser here (POSTing `token`) after the hosted checkout
-// form is submitted. This is a cross-site POST from iyzico's own domain, so the SameSite=Lax
-// session cookie is NOT sent along with it — we can't rely on getSessionUserId() here. Instead
-// we identify the user via `conversationId`, which we set to the userId when initializing the
-// checkout form (see /api/billing/checkout) and iyzico echoes back on every response. The
-// session lookup is kept only as a defensive fallback.
+// form is submitted. `conversationId` (set to the userId at initialize time) is preferred for
+// identifying the user, falling back to the session cookie — in practice iyzico's response
+// hasn't echoed conversationId back on this endpoint, so the session fallback is what actually
+// resolves the user; kept as a fallback in case that changes.
 export async function POST(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const formData = await req.formData().catch(() => null);
@@ -40,16 +39,16 @@ export async function POST(req: NextRequest) {
   try {
     const result = await retrieveWithRetry(token);
     const userId = Number(result.conversationId) || (await getSessionUserId());
-    console.error("[billing/callback] retrieve result", JSON.stringify(result), "userId", userId);
 
-    if (userId && result.status === "success" && result.subscriptionReferenceCode) {
+    if (userId && result.status === "success" && result.data?.referenceCode) {
       await updateSubscription(userId, {
         status: "active",
-        iyzicoSubscriptionRef: result.subscriptionReferenceCode,
-        iyzicoCustomerRef: result.customerReferenceCode ?? null,
+        iyzicoSubscriptionRef: result.data.referenceCode,
+        iyzicoCustomerRef: result.data.customerReferenceCode ?? null,
       });
       return NextResponse.redirect(`${origin}/billing?status=success`);
     }
+    console.error("[billing/callback] did not resolve to success", JSON.stringify(result), "userId", userId);
   } catch (err) {
     console.error("[billing/callback] error", err);
   }
