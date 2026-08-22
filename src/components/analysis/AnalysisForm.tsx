@@ -2,21 +2,135 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import clsx from "clsx";
+import {
+  Search,
+  Users,
+  Globe2,
+  DollarSign,
+  TrendingUp,
+  Languages,
+  Image as ImageIcon,
+  FileText,
+  Heart,
+  Tv,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { formatCompactNumber } from "@/lib/format";
 import type { ChannelAnalysisResult } from "@/app/api/analysis/route";
 
-const COLUMNS: { key: keyof ChannelAnalysisResult; label: string }[] = [
-  { key: "channelName", label: "Kanal" },
-  { key: "targetAgeGroup", label: "Hedef Yaş Kitlesi" },
-  { key: "targetCountry", label: "Hedef Ülke" },
-  { key: "thumbnailQuality", label: "Kapak Görseli Kalitesi" },
-  { key: "textQuality", label: "Metin Kalitesi" },
-  { key: "audienceFit", label: "Kitle Uyumu" },
-  { key: "languageGaps", label: "Dil Boşlukları" },
-  { key: "rpm", label: "RPM" },
-];
+function scoreFromText(text: string): number | null {
+  const match = text.match(/^(\d+(?:\.\d+)?)\s*\/\s*10/);
+  return match ? Number(match[1]) : null;
+}
+
+function scoreNoteFromText(text: string): string {
+  const idx = text.indexOf("—");
+  return idx === -1 ? text : text.slice(idx + 1).trim();
+}
+
+function scoreColorClass(score: number | null): string {
+  if (score === null) return "text-ink-faint";
+  if (score >= 8) return "text-emerald-400";
+  if (score >= 5) return "text-amber-400";
+  return "text-red-400";
+}
+
+function sentimentColorClass(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.includes("positive")) return "text-emerald-400";
+  if (lower.includes("negative")) return "text-red-400";
+  return "text-ink-muted";
+}
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueClassName?: string;
+}
+
+function StatCard({ icon, label, value, valueClassName }: StatCardProps) {
+  return (
+    <div className="rounded-lg border border-line bg-surface-2 p-4 transition-all duration-200 hover:border-line-strong hover:-translate-y-0.5">
+      <div className="flex items-center gap-2 text-ink-faint">
+        {icon}
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className={clsx("mt-2 text-sm font-semibold", valueClassName ?? "text-ink")}>{value}</p>
+    </div>
+  );
+}
+
+function QualityCard({
+  icon,
+  label,
+  text,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  text: string;
+}) {
+  const score = scoreFromText(text);
+  const note = text === "—" ? "Veri yok" : scoreNoteFromText(text);
+  return (
+    <div className="rounded-lg border border-line bg-surface-2 p-4 transition-all duration-200 hover:border-line-strong hover:-translate-y-0.5 sm:col-span-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-ink-faint">
+          {icon}
+          <span className="text-xs font-medium">{label}</span>
+        </div>
+        {score !== null && (
+          <span className={clsx("text-sm font-bold", scoreColorClass(score))}>{score}/10</span>
+        )}
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-ink-muted">{note}</p>
+    </div>
+  );
+}
+
+function ResultCard({ result }: { result: ChannelAnalysisResult }) {
+  return (
+    <div className="animate-fade-in-up rounded-xl border border-line bg-surface p-5 shadow-lg shadow-black/20">
+      <div className="mb-4 flex items-center gap-2.5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+          <Tv className="h-4 w-4" />
+        </div>
+        <h3 className="text-lg font-semibold text-ink">{result.channelName}</h3>
+      </div>
+
+      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon={<Users className="h-3.5 w-3.5" />} label="Hedef Yaş Kitlesi" value={result.targetAgeGroup} />
+        <StatCard icon={<Globe2 className="h-3.5 w-3.5" />} label="Hedef Ülke" value={result.targetCountry} />
+        <StatCard
+          icon={<DollarSign className="h-3.5 w-3.5" />}
+          label="Aylık Gelir (tahmini)"
+          value={result.monthlyRevenue !== null ? `$${formatCompactNumber(result.monthlyRevenue)}` : "—"}
+          valueClassName="text-emerald-400"
+        />
+        <StatCard
+          icon={<TrendingUp className="h-3.5 w-3.5" />}
+          label="RPM"
+          value={result.rpm !== null ? `$${result.rpm}` : "—"}
+        />
+        <StatCard
+          icon={<Heart className="h-3.5 w-3.5" />}
+          label="Kitle Uyumu"
+          value={result.audienceFit}
+          valueClassName={sentimentColorClass(result.audienceFit)}
+        />
+        <StatCard
+          icon={<Languages className="h-3.5 w-3.5" />}
+          label="Dil Boşlukları"
+          value={result.languageGaps.length > 0 ? result.languageGaps.join(", ") : "Belirgin boşluk yok"}
+        />
+        <QualityCard icon={<ImageIcon className="h-3.5 w-3.5" />} label="Kapak Görseli Kalitesi" text={result.thumbnailQuality} />
+        <QualityCard icon={<FileText className="h-3.5 w-3.5" />} label="Metin Kalitesi" text={result.textQuality} />
+      </div>
+    </div>
+  );
+}
 
 export function AnalysisForm() {
   const [url, setUrl] = useState("");
@@ -62,39 +176,14 @@ export function AnalysisForm() {
         </Button>
       </form>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-line">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-line bg-surface-2">
-              {COLUMNS.map((col) => (
-                <th key={col.key} className="whitespace-nowrap px-3 py-2 font-medium text-ink-muted">
-                  {col.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {results.length === 0 ? (
-              <tr>
-                <td colSpan={COLUMNS.length} className="px-3 py-6 text-center text-ink-faint">
-                  Henüz analiz edilmiş kanal yok.
-                </td>
-              </tr>
-            ) : (
-              results.map((row, i) => (
-                <tr key={i} className="border-b border-line last:border-0">
-                  {COLUMNS.map((col) => (
-                    <td key={col.key} className="whitespace-nowrap px-3 py-2 text-ink">
-                      {Array.isArray(row[col.key])
-                        ? (row[col.key] as string[]).join(", ")
-                        : (row[col.key] ?? "—")}
-                    </td>
-                  ))}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="stagger mt-6 flex flex-col gap-4">
+        {results.length === 0 ? (
+          <div className="rounded-lg border border-line bg-surface p-10 text-center text-sm text-ink-faint">
+            Henüz analiz edilmiş kanal yok.
+          </div>
+        ) : (
+          results.map((result, i) => <ResultCard key={`${result.channelName}-${i}`} result={result} />)
+        )}
       </div>
     </div>
   );

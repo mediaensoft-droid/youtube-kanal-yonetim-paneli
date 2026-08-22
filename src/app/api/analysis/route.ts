@@ -27,6 +27,7 @@ export interface ChannelAnalysisResult {
   audienceFit: string;
   languageGaps: string[];
   rpm: number | null;
+  monthlyRevenue: number | null;
 }
 
 function sleep(ms: number) {
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
         geoDemoRev.demographics.viewership_country
       ),
       rpm: geoDemoRev.rpm?.rpm_45 ?? null,
+      monthlyRevenue: geoDemoRev.revenue?.month_revenue ?? null,
     };
 
     return okResponse(result);

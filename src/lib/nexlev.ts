@@ -63,6 +63,9 @@ export interface NexlevGeoDemoRev {
   };
   revenue: {
     channel_language_code: string;
+    month_revenue: number;
+    month_long_revenue: number;
+    month_short_revenue: number;
     [key: string]: unknown;
   };
 }
