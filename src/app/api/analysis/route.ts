@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { errorResponse, okResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
 import { hasUltraAccess } from "@/lib/access";
-import { resolveToChannelId, ChannelResolutionError } from "@/lib/youtube";
+import { resolveToChannelId, fetchChannelDetails, ChannelResolutionError } from "@/lib/youtube";
 import {
   getChannelAbout,
   getGeoDemoRev,
@@ -13,8 +13,10 @@ import {
   detectLanguageGap,
   NexlevApiError,
 } from "@/lib/nexlev";
+import { analyzeContentQuality } from "@/lib/contentQuality";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export interface ChannelAnalysisResult {
   channelName: string;
@@ -49,6 +51,32 @@ async function getAudienceFit(channelId: string): Promise<string> {
   return "Analiz zaman aşımına uğradı";
 }
 
+interface QualityScores {
+  thumbnailQuality: string;
+  textQuality: string;
+}
+
+async function getQualityScores(
+  channelName: string,
+  description: string,
+  videoTitles: string[],
+  thumbnailUrls: string[]
+): Promise<QualityScores> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { thumbnailQuality: "—", textQuality: "—" };
+  }
+  try {
+    const result = await analyzeContentQuality({ channelName, description, videoTitles, thumbnailUrls });
+    return {
+      thumbnailQuality:
+        result.thumbnailScore !== null ? `${result.thumbnailScore}/10 — ${result.thumbnailNotes}` : "—",
+      textQuality: result.textScore !== null ? `${result.textScore}/10 — ${result.textNotes}` : "—",
+    };
+  } catch {
+    return { thumbnailQuality: "—", textQuality: "—" };
+  }
+}
+
 export async function POST(req: NextRequest) {
   const userId = await getSessionUserId();
   if (!userId) return errorResponse(401, "Unauthorized");
@@ -75,18 +103,26 @@ export async function POST(req: NextRequest) {
   try {
     const channelId = await resolveToChannelId(url, youtubeApiKey);
 
-    const [about, geoDemoRev, audienceFit] = await Promise.all([
+    const [about, geoDemoRev, audienceFit, details] = await Promise.all([
       getChannelAbout(channelId),
       getGeoDemoRev(channelId),
       getAudienceFit(channelId),
+      fetchChannelDetails(channelId, youtubeApiKey).catch(() => null),
     ]);
+
+    const quality = await getQualityScores(
+      about.title,
+      details?.description ?? about.description ?? "",
+      (details?.recentVideos ?? []).map((v) => v.title),
+      (details?.recentVideos ?? []).map((v) => v.thumbnailUrl)
+    );
 
     const result: ChannelAnalysisResult = {
       channelName: about.title,
       targetAgeGroup: formatTopAgeGroup(geoDemoRev.demographics.age),
       targetCountry: formatTopCountry(geoDemoRev.demographics.viewership_country),
-      thumbnailQuality: "—",
-      textQuality: "—",
+      thumbnailQuality: quality.thumbnailQuality,
+      textQuality: quality.textQuality,
       audienceFit,
       languageGaps: detectLanguageGap(
         geoDemoRev.revenue.channel_language_code,
