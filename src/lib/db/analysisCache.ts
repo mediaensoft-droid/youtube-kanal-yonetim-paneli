@@ -1,5 +1,5 @@
 import "server-only";
-import { get, run } from "@/lib/db";
+import { all, get, run } from "@/lib/db";
 
 const CACHE_TTL_DAYS = 30;
 
@@ -62,6 +62,14 @@ export async function upsertCachedAnalysis(
       data.audienceFit,
     ]
   );
+}
+
+export async function listRecentAnalyses(limit = 20): Promise<CachedAnalysis[]> {
+  const rows = await all<CachedAnalysisRow>(
+    `SELECT * FROM channel_analysis_cache ORDER BY createdAt DESC LIMIT ?`,
+    [limit]
+  );
+  return rows.map((row) => ({ ...row, languageGaps: JSON.parse(row.languageGaps) }));
 }
 
 export async function updateCachedAudienceFit(

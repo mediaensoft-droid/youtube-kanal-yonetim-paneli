@@ -176,10 +176,10 @@ function ResultCard({
   );
 }
 
-export function AnalysisForm() {
+export function AnalysisForm({ initialResults = [] }: { initialResults?: ChannelAnalysisResult[] }) {
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [results, setResults] = useState<ChannelAnalysisResult[]>([]);
+  const [results, setResults] = useState<ChannelAnalysisResult[]>(initialResults);
   const [audienceFitLoadingIds, setAudienceFitLoadingIds] = useState<Record<string, boolean>>({});
 
   async function handleSubmit(e: React.FormEvent) {

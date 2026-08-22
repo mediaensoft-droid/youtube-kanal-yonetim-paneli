@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { Lock } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { hasUltraAccess } from "@/lib/access";
+import { listRecentAnalyses } from "@/lib/db/analysisCache";
 import { AnalysisForm } from "@/components/analysis/AnalysisForm";
+import type { ChannelAnalysisResult } from "@/app/api/analysis/route";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,24 @@ export default async function AnalysisPage() {
   if (!userId) redirect("/sign-in");
 
   const allowed = await hasUltraAccess(userId);
+
+  let initialResults: ChannelAnalysisResult[] = [];
+  if (allowed) {
+    const history = await listRecentAnalyses(20);
+    initialResults = history.map((item) => ({
+      channelId: item.youtubeChannelId,
+      channelName: item.channelName,
+      targetAgeGroup: item.targetAgeGroup,
+      targetCountry: item.targetCountry,
+      thumbnailQuality: item.thumbnailQuality,
+      textQuality: item.textQuality,
+      audienceFit: item.audienceFit,
+      languageGaps: item.languageGaps,
+      rpm: item.rpm,
+      monthlyRevenue: item.monthlyRevenue,
+      fromCache: true,
+    }));
+  }
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-5xl">
@@ -22,7 +42,7 @@ export default async function AnalysisPage() {
       </p>
 
       {allowed ? (
-        <AnalysisForm />
+        <AnalysisForm initialResults={initialResults} />
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-line bg-surface p-10 text-center">
           <Lock className="h-6 w-6 text-ink-faint" />
