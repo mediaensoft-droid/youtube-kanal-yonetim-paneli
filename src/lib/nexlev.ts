@@ -36,7 +36,24 @@ async function nexlevRequest<T>(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new NexlevApiError(`NexLev isteği başarısız (HTTP ${res.status}): ${text}`, res.status);
+    let apiMessage: string | undefined;
+    try {
+      apiMessage = JSON.parse(text)?.message;
+    } catch {
+      // body wasn't JSON — fall back to the raw text below
+    }
+
+    if (res.status === 403 && apiMessage?.toLowerCase().includes("usage limit")) {
+      throw new NexlevApiError(
+        `NexLev API kotanız bu ay için dolmuş (${apiMessage.match(/\d+\/\d+/)?.[0] ?? ""}). ` +
+          `Kota her ayın başında otomatik sıfırlanır ya da NexLev panelinden planınızı yükseltebilirsiniz.`,
+        res.status
+      );
+    }
+    throw new NexlevApiError(
+      apiMessage ? `NexLev isteği başarısız: ${apiMessage}` : `NexLev isteği başarısız (HTTP ${res.status}): ${text}`,
+      res.status
+    );
   }
   return res.json() as Promise<T>;
 }
