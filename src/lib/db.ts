@@ -85,6 +85,23 @@ async function bootstrapSchema(): Promise<void> {
     );
 
     CREATE INDEX IF NOT EXISTS idx_snapshots_channelId_capturedAt ON channel_snapshots(channelId, capturedAt);
+
+    CREATE TABLE IF NOT EXISTS channel_analysis_cache (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      youtubeChannelId TEXT NOT NULL UNIQUE,
+      channelName      TEXT NOT NULL,
+      targetAgeGroup   TEXT NOT NULL,
+      targetCountry    TEXT NOT NULL,
+      thumbnailQuality TEXT NOT NULL,
+      textQuality      TEXT NOT NULL,
+      languageGaps     TEXT NOT NULL DEFAULT '[]',
+      rpm              REAL,
+      monthlyRevenue   REAL,
+      audienceFit      TEXT,
+      createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_analysis_cache_youtubeChannelId ON channel_analysis_cache(youtubeChannelId);
   `);
 
   // channels existed before conceptId was introduced; add the column (and its index) for databases created pre-migration.

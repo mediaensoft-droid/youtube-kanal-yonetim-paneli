@@ -6,50 +6,29 @@ import { resolveToChannelId, fetchChannelDetails, ChannelResolutionError } from 
 import {
   getChannelAbout,
   getGeoDemoRev,
-  createChannelAnalysisJob,
-  getChannelAnalysisJobStatus,
   formatTopAgeGroup,
   formatTopCountry,
   detectLanguageGap,
   NexlevApiError,
 } from "@/lib/nexlev";
 import { analyzeContentQuality } from "@/lib/contentQuality";
+import { getCachedAnalysis, upsertCachedAnalysis } from "@/lib/db/analysisCache";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export interface ChannelAnalysisResult {
+  channelId: string;
   channelName: string;
   targetAgeGroup: string;
   targetCountry: string;
   thumbnailQuality: string;
   textQuality: string;
-  audienceFit: string;
+  audienceFit: string | null;
   languageGaps: string[];
   rpm: number | null;
   monthlyRevenue: number | null;
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function getAudienceFit(channelId: string): Promise<string> {
-  try {
-    const job = await createChannelAnalysisJob(channelId);
-    for (const delayMs of [0, 1500, 2500, 3000]) {
-      if (delayMs) await sleep(delayMs);
-      const status = await getChannelAnalysisJobStatus(job.job_id);
-      const sentiment = status.result?.strategic_insights?.audience_insights?.sentiment_summary;
-      if (status.status === "completed" && sentiment?.overall_sentiment) {
-        return `${sentiment.overall_sentiment} (etkileşim: ${sentiment.engagement_level ?? "—"})`;
-      }
-      if (status.status === "failed") break;
-    }
-  } catch {
-    // fall through — audience fit is best-effort, not fatal to the rest of the report
-  }
-  return "Analiz zaman aşımına uğradı";
+  fromCache: boolean;
 }
 
 interface QualityScores {
@@ -89,13 +68,6 @@ export async function POST(req: NextRequest) {
   const url = typeof json?.url === "string" ? json.url.trim() : "";
   if (!url) return errorResponse(400, "Kanal linki gerekli.");
 
-  if (!process.env.NEXLEV_API_KEY) {
-    return errorResponse(
-      503,
-      "Kanal analiz özelliği henüz aktif değil — NexLev entegrasyonu yapılandırma aşamasında."
-    );
-  }
-
   const youtubeApiKey = process.env.YOUTUBE_API_KEY;
   if (!youtubeApiKey) {
     return errorResponse(500, "YOUTUBE_API_KEY tanımlı değil.");
@@ -104,10 +76,37 @@ export async function POST(req: NextRequest) {
   try {
     const channelId = await resolveToChannelId(url, youtubeApiKey);
 
-    const [about, geoDemoRev, audienceFit, details] = await Promise.all([
+    // Serve from cache when available — NexLev's geography-revenue endpoint alone costs 20
+    // units per call, so repeat lookups of the same channel (likely across subscribers) must
+    // not re-spend quota.
+    const cached = await getCachedAnalysis(channelId);
+    if (cached) {
+      const result: ChannelAnalysisResult = {
+        channelId,
+        channelName: cached.channelName,
+        targetAgeGroup: cached.targetAgeGroup,
+        targetCountry: cached.targetCountry,
+        thumbnailQuality: cached.thumbnailQuality,
+        textQuality: cached.textQuality,
+        audienceFit: cached.audienceFit,
+        languageGaps: cached.languageGaps,
+        rpm: cached.rpm,
+        monthlyRevenue: cached.monthlyRevenue,
+        fromCache: true,
+      };
+      return okResponse(result);
+    }
+
+    if (!process.env.NEXLEV_API_KEY) {
+      return errorResponse(
+        503,
+        "Kanal analiz özelliği henüz aktif değil — NexLev entegrasyonu yapılandırma aşamasında."
+      );
+    }
+
+    const [about, geoDemoRev, details] = await Promise.all([
       getChannelAbout(channelId),
       getGeoDemoRev(channelId),
-      getAudienceFit(channelId),
       fetchChannelDetails(channelId, youtubeApiKey).catch(() => null),
     ]);
 
@@ -119,19 +118,34 @@ export async function POST(req: NextRequest) {
     );
 
     const result: ChannelAnalysisResult = {
+      channelId,
       channelName: about.title,
       targetAgeGroup: formatTopAgeGroup(geoDemoRev.demographics.age),
       targetCountry: formatTopCountry(geoDemoRev.demographics.viewership_country),
       thumbnailQuality: quality.thumbnailQuality,
       textQuality: quality.textQuality,
-      audienceFit,
+      audienceFit: null,
       languageGaps: detectLanguageGap(
         geoDemoRev.revenue.channel_language_code,
         geoDemoRev.demographics.viewership_country
       ),
       rpm: geoDemoRev.rpm?.rpm_45 ?? null,
       monthlyRevenue: geoDemoRev.revenue?.month_revenue ?? null,
+      fromCache: false,
     };
+
+    await upsertCachedAnalysis({
+      youtubeChannelId: result.channelId,
+      channelName: result.channelName,
+      targetAgeGroup: result.targetAgeGroup,
+      targetCountry: result.targetCountry,
+      thumbnailQuality: result.thumbnailQuality,
+      textQuality: result.textQuality,
+      languageGaps: result.languageGaps,
+      rpm: result.rpm,
+      monthlyRevenue: result.monthlyRevenue,
+      audienceFit: result.audienceFit,
+    });
 
     return okResponse(result);
   } catch (err) {

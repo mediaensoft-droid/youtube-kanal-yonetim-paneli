@@ -14,6 +14,7 @@ import {
   FileText,
   Heart,
   Tv,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -63,6 +64,37 @@ function StatCard({ icon, label, value, valueClassName }: StatCardProps) {
   );
 }
 
+function AudienceFitCard({
+  audienceFit,
+  loading,
+  onFetch,
+}: {
+  audienceFit: string | null;
+  loading: boolean;
+  onFetch: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-line bg-surface-2 p-4 transition-all duration-200 hover:border-line-strong hover:-translate-y-0.5">
+      <div className="flex items-center gap-2 text-ink-faint">
+        <Heart className="h-3.5 w-3.5" />
+        <span className="text-xs font-medium">Kitle Uyumu</span>
+      </div>
+      {audienceFit ? (
+        <p className={clsx("mt-2 text-sm font-semibold", sentimentColorClass(audienceFit))}>{audienceFit}</p>
+      ) : (
+        <button
+          type="button"
+          onClick={onFetch}
+          disabled={loading}
+          className="mt-2 text-xs font-medium text-brand transition-colors duration-150 hover:text-brand-hover disabled:text-ink-faint"
+        >
+          {loading ? "Getiriliyor…" : "Kitle Uyumunu Getir →"}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function QualityCard({
   icon,
   label,
@@ -90,7 +122,15 @@ function QualityCard({
   );
 }
 
-function ResultCard({ result }: { result: ChannelAnalysisResult }) {
+function ResultCard({
+  result,
+  audienceFitLoading,
+  onFetchAudienceFit,
+}: {
+  result: ChannelAnalysisResult;
+  audienceFitLoading: boolean;
+  onFetchAudienceFit: () => void;
+}) {
   return (
     <div className="animate-fade-in-up rounded-xl border border-line bg-surface p-5 shadow-lg shadow-black/20">
       <div className="mb-4 flex items-center gap-2.5">
@@ -98,6 +138,11 @@ function ResultCard({ result }: { result: ChannelAnalysisResult }) {
           <Tv className="h-4 w-4" />
         </div>
         <h3 className="text-lg font-semibold text-ink">{result.channelName}</h3>
+        {result.fromCache && (
+          <span className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[10px] text-ink-faint">
+            <Database className="h-3 w-3" /> önbellek
+          </span>
+        )}
       </div>
 
       <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -114,11 +159,10 @@ function ResultCard({ result }: { result: ChannelAnalysisResult }) {
           label="RPM"
           value={result.rpm !== null ? `$${result.rpm}` : "—"}
         />
-        <StatCard
-          icon={<Heart className="h-3.5 w-3.5" />}
-          label="Kitle Uyumu"
-          value={result.audienceFit}
-          valueClassName={sentimentColorClass(result.audienceFit)}
+        <AudienceFitCard
+          audienceFit={result.audienceFit}
+          loading={audienceFitLoading}
+          onFetch={onFetchAudienceFit}
         />
         <StatCard
           icon={<Languages className="h-3.5 w-3.5" />}
@@ -136,6 +180,7 @@ export function AnalysisForm() {
   const [url, setUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<ChannelAnalysisResult[]>([]);
+  const [audienceFitLoadingIds, setAudienceFitLoadingIds] = useState<Record<string, boolean>>({});
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -157,6 +202,29 @@ export function AnalysisForm() {
       toast.error("Analiz başarısız oldu.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleFetchAudienceFit(channelId: string) {
+    setAudienceFitLoadingIds((prev) => ({ ...prev, [channelId]: true }));
+    try {
+      const res = await fetch("/api/analysis/audience-fit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Kitle uyumu getirilemedi.");
+        return;
+      }
+      setResults((prev) =>
+        prev.map((r) => (r.channelId === channelId ? { ...r, audienceFit: data.audienceFit } : r))
+      );
+    } catch {
+      toast.error("Kitle uyumu getirilemedi.");
+    } finally {
+      setAudienceFitLoadingIds((prev) => ({ ...prev, [channelId]: false }));
     }
   }
 
@@ -182,7 +250,14 @@ export function AnalysisForm() {
             Henüz analiz edilmiş kanal yok.
           </div>
         ) : (
-          results.map((result, i) => <ResultCard key={`${result.channelName}-${i}`} result={result} />)
+          results.map((result, i) => (
+            <ResultCard
+              key={`${result.channelId}-${i}`}
+              result={result}
+              audienceFitLoading={audienceFitLoadingIds[result.channelId] ?? false}
+              onFetchAudienceFit={() => handleFetchAudienceFit(result.channelId)}
+            />
+          ))
         )}
       </div>
     </div>
