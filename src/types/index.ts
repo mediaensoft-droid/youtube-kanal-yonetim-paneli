@@ -26,6 +26,7 @@ export interface Channel {
   languages: string[];
   countries: string[];
   notes: string | null;
+  publishDays: number[];
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -54,6 +55,7 @@ export interface UpdateChannelInput {
   languages?: string[];
   countries?: string[];
   notes?: string | null;
+  publishDays?: number[];
   url?: string;
 }
 
@@ -94,4 +96,25 @@ export interface CreateConceptInput {
 export interface UpdateConceptInput {
   name?: string;
   color?: string;
+}
+
+export type ScheduleStatus = "planned" | "published" | "skipped";
+
+export interface ScheduleEntry {
+  id: number;
+  channelId: number;
+  date: string;
+  title: string | null;
+  status: ScheduleStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertScheduleEntryInput {
+  channelId: number;
+  date: string;
+  status?: ScheduleStatus;
+  title?: string | null;
+  notes?: string | null;
 }

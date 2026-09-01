@@ -5,13 +5,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import clsx from "clsx";
-import { LayoutDashboard, Tv, Layers, Lightbulb, Menu, X, LogOut, CreditCard, Search } from "lucide-react";
+import {
+  LayoutDashboard,
+  Tv,
+  Layers,
+  Lightbulb,
+  Menu,
+  X,
+  LogOut,
+  CreditCard,
+  Search,
+  CalendarDays,
+} from "lucide-react";
 
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/channels", label: "Kanallar", icon: Tv },
   { href: "/categories", label: "Kategoriler", icon: Layers },
   { href: "/concepts", label: "Konseptler", icon: Lightbulb },
+  { href: "/calendar", label: "Takvim", icon: CalendarDays },
   { href: "/analysis", label: "Analiz", icon: Search },
   { href: "/billing", label: "Üyelik", icon: CreditCard },
 ];

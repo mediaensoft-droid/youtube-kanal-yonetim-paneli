@@ -67,6 +67,7 @@ async function bootstrapSchema(): Promise<void> {
       languages        TEXT NOT NULL DEFAULT '[]',
       countries        TEXT NOT NULL DEFAULT '[]',
       notes            TEXT,
+      publishDays      TEXT NOT NULL DEFAULT '[]',
       lastRefreshedAt  TEXT,
       createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -120,6 +121,17 @@ async function bootstrapSchema(): Promise<void> {
   }
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_conceptId ON channels(conceptId)`);
 
+  // channels existed before publishDays (weekly upload-day pattern) was introduced; backfill the column.
+  const hasPublishDays = tableInfo.rows.some((row) => row.name === "publishDays");
+  if (!hasPublishDays) {
+    try {
+      await db.execute(`ALTER TABLE channels ADD COLUMN publishDays TEXT NOT NULL DEFAULT '[]'`);
+    } catch (err) {
+      const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+      if (!isDuplicateColumn) throw err;
+    }
+  }
+
   // Multi-tenant migration: a `users` table plus per-row ownership on channels/categories/concepts.
   // SQLite can't alter a UNIQUE constraint in place, so youtubeId/name uniqueness moves from
   // globally-unique to composite (userId, youtubeId)/(userId, name) via a full table rebuild —
@@ -149,6 +161,27 @@ async function bootstrapSchema(): Promise<void> {
     )
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_subscriptions_userId ON subscriptions(userId)`);
+
+  // Publish calendar: tracks the actual per-date status of a channel's video (planned/published/skipped).
+  // The channel's `publishDays` (weekday pattern) drives which dates show up as "planned" by default;
+  // a row here only exists once the user overrides that default or adds an ad-hoc extra upload.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS schedule_entries (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      channelId INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+      date      TEXT NOT NULL,
+      title     TEXT,
+      status    TEXT NOT NULL DEFAULT 'planned',
+      notes     TEXT,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      UNIQUE(channelId, date)
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_schedule_entries_userId_date ON schedule_entries(userId, date)`
+  );
 
   const channelsInfo = await db.execute(`PRAGMA table_info(channels)`);
   const categoriesInfo = await db.execute(`PRAGMA table_info(categories)`);

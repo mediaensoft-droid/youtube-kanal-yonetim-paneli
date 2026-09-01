@@ -17,6 +17,7 @@ export const updateChannelSchema = z.object({
   languages: z.array(z.string()).optional(),
   countries: z.array(z.string()).optional(),
   notes: z.string().nullable().optional(),
+  publishDays: z.array(z.number().int().min(1).max(7)).optional(),
   url: z.string().trim().min(1).optional(),
 });
 
@@ -38,6 +39,14 @@ export const createConceptSchema = z.object({
 export const updateConceptSchema = z.object({
   name: z.string().trim().min(1).optional(),
   color: hexColor.optional(),
+});
+
+export const upsertScheduleEntrySchema = z.object({
+  channelId: z.number().int(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli bir tarih girin (YYYY-AA-GG)"),
+  status: z.enum(["planned", "published", "skipped"]).optional(),
+  title: z.string().trim().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
 });
 
 export const billingCheckoutSchema = z.object({

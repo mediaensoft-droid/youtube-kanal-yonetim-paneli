@@ -16,6 +16,7 @@ interface ChannelRow {
   languages: string;
   countries: string;
   notes: string | null;
+  publishDays: string;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +41,7 @@ function rowToChannel(row: ChannelRow): Channel {
     languages: JSON.parse(row.languages) as string[],
     countries: JSON.parse(row.countries) as string[],
     notes: row.notes,
+    publishDays: JSON.parse(row.publishDays) as number[],
     lastRefreshedAt: row.lastRefreshedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -158,6 +160,7 @@ export interface UpdateChannelManualFields {
   languages?: string[];
   countries?: string[];
   notes?: string | null;
+  publishDays?: number[];
   url?: string;
 }
 
@@ -175,13 +178,24 @@ export async function updateChannelManualFields(
   const languages = input.languages ?? existing.languages;
   const countries = input.countries ?? existing.countries;
   const notes = input.notes !== undefined ? input.notes : existing.notes;
+  const publishDays = input.publishDays ?? existing.publishDays;
   const url = input.url ?? existing.url;
 
   await run(
     `UPDATE channels
-       SET categoryId = ?, conceptId = ?, languages = ?, countries = ?, notes = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       SET categoryId = ?, conceptId = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE id = ? AND userId = ?`,
-    [categoryId, conceptId, JSON.stringify(languages), JSON.stringify(countries), notes, url, id, userId]
+    [
+      categoryId,
+      conceptId,
+      JSON.stringify(languages),
+      JSON.stringify(countries),
+      notes,
+      JSON.stringify(publishDays),
+      url,
+      id,
+      userId,
+    ]
   );
 
   return (await getChannelById(userId, id))!;

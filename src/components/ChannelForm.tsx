@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/Textarea";
 import { MultiSelect } from "@/components/MultiSelect";
 import { LANGUAGES } from "@/lib/constants/languages";
 import { COUNTRIES, countryFlagEmoji } from "@/lib/constants/countries";
+import { WEEKDAYS } from "@/lib/weekdays";
+import clsx from "clsx";
 
 const languageOptions = LANGUAGES.map((l) => ({ code: l.code, label: l.name }));
 const countryOptions = COUNTRIES.map((c) => ({
@@ -41,6 +43,11 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
   const [languages, setLanguages] = useState<string[]>(initialChannel?.languages ?? []);
   const [countries, setCountries] = useState<string[]>(initialChannel?.countries ?? []);
   const [notes, setNotes] = useState(initialChannel?.notes ?? "");
+  const [publishDays, setPublishDays] = useState<number[]>(initialChannel?.publishDays ?? []);
+
+  function togglePublishDay(iso: number) {
+    setPublishDays((prev) => (prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort()));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +83,7 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
             languages,
             countries,
             notes: notes || null,
+            publishDays,
           }),
         });
         const data = await res.json();
@@ -170,6 +178,35 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
           placeholder="Ülke seçin..."
         />
       </div>
+
+      {mode === "edit" && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink">Yayın Günleri</label>
+          <div className="flex flex-wrap gap-1.5">
+            {WEEKDAYS.map((day) => {
+              const active = publishDays.includes(day.iso);
+              return (
+                <button
+                  key={day.iso}
+                  type="button"
+                  onClick={() => togglePublishDay(day.iso)}
+                  className={clsx(
+                    "rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors duration-150",
+                    active
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-surface-2 text-ink-muted hover:border-line-strong hover:text-ink"
+                  )}
+                >
+                  {day.short}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-xs text-ink-faint">
+            Bu kanalın hangi günler video yayınlayacağını belirler, Takvim sayfasında gösterilir.
+          </p>
+        </div>
+      )}
 
       <div>
         <label className="mb-1 block text-sm font-medium text-ink">Notlar</label>
