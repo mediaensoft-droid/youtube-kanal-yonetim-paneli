@@ -260,15 +260,15 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <h2 className="w-40 text-center text-base font-semibold text-ink">
+          <h2 className="w-48 text-center text-lg font-semibold text-ink">
             {MONTH_LABELS[cursor.month]} {cursor.year}
           </h2>
           <button
             onClick={() => goToMonth(1)}
-            className="rounded-md p-1.5 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+            className="rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
             aria-label="Sonraki ay"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
         <Button variant="ghost" size="sm" onClick={goToday}>
@@ -281,11 +281,11 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
           Takvimi kullanmak için önce bir kanal ekleyin.
         </p>
       ) : (
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line text-xs">
+        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line text-sm">
           {WEEKDAYS.map((day) => (
             <div
               key={day.iso}
-              className="bg-surface-2 px-2 py-1.5 text-center font-medium text-ink-muted"
+              className="bg-surface-2 px-2 py-2.5 text-center font-medium text-ink-muted"
             >
               {day.short}
             </div>
@@ -298,14 +298,14 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
             return (
               <div
                 key={key}
-                className={clsx("min-h-[100px] bg-surface p-1.5", !inMonth && "opacity-40")}
+                className={clsx("min-h-[160px] bg-surface p-2", !inMonth && "opacity-40")}
               >
-                <div className="mb-1 flex items-center justify-between">
+                <div className="mb-1.5 flex items-center justify-between">
                   <span
                     className={clsx(
-                      "text-xs",
+                      "text-sm",
                       isToday
-                        ? "flex h-5 w-5 items-center justify-center rounded-full bg-brand font-semibold text-white"
+                        ? "flex h-6 w-6 items-center justify-center rounded-full bg-brand font-semibold text-white"
                         : "text-ink-faint"
                     )}
                   >
@@ -313,13 +313,13 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
                   </span>
                   <button
                     onClick={() => setActiveSlot({ date: key, channelId: null })}
-                    className="rounded p-0.5 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                    className="rounded p-1 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
                     aria-label="Video ekle"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {slots.map((slot) => {
                     const status = slot.entry?.status ?? "planned";
                     const meta = STATUS_META[status];
@@ -328,12 +328,12 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
                         key={slot.channel.id}
                         onClick={() => setActiveSlot({ date: key, channelId: slot.channel.id })}
                         className={clsx(
-                          "flex w-full items-center gap-1 truncate rounded border px-1.5 py-0.5 text-left text-[11px]",
+                          "flex w-full items-center gap-1.5 truncate rounded border px-2 py-1 text-left text-xs",
                           meta.chip
                         )}
                         title={slot.entry?.title ?? slot.channel.name}
                       >
-                        <span className={clsx("h-1.5 w-1.5 shrink-0 rounded-full", meta.dot)} />
+                        <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
                         <span className="truncate">{slot.channel.name}</span>
                       </button>
                     );
