@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Pencil, Trash2, BarChart3, ChevronRight, Users, Video } from "lucide-react";
+import { RefreshCw, Pencil, Trash2, BarChart3, ChevronRight, Settings2, ListVideo, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
 import { CategoryBadge } from "@/components/CategoryBadge";
@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
+import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
 
 interface ChannelCardProps {
   channel: Channel;
@@ -133,6 +134,27 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
             <BarChart3 className="h-4 w-4" /> Detayları Gör
             <ChevronRight className="h-4 w-4" />
           </Link>
+
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <a
+              href={studioCustomizeUrl(channel.youtubeId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover hover:text-ink"
+            >
+              <Settings2 className="h-3.5 w-3.5" /> Özelleştir
+            </a>
+            <a
+              href={studioVideosUrl(channel.youtubeId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center gap-1.5 rounded-md border border-line px-2 py-1.5 text-xs font-medium text-ink-muted transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover hover:text-ink"
+            >
+              <ListVideo className="h-3.5 w-3.5" /> Videolar
+            </a>
+          </div>
 
           <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
             <button

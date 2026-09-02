@@ -170,18 +170,32 @@ async function bootstrapSchema(): Promise<void> {
       id        INTEGER PRIMARY KEY AUTOINCREMENT,
       userId    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       channelId INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
-      date      TEXT NOT NULL,
-      title     TEXT,
-      status    TEXT NOT NULL DEFAULT 'planned',
-      notes     TEXT,
-      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-      updatedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      date        TEXT NOT NULL,
+      title       TEXT,
+      status      TEXT NOT NULL DEFAULT 'planned',
+      notes       TEXT,
+      publishedAt TEXT,
+      createdAt   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       UNIQUE(channelId, date)
     )
   `);
   await db.execute(
     `CREATE INDEX IF NOT EXISTS idx_schedule_entries_userId_date ON schedule_entries(userId, date)`
   );
+
+  // schedule_entries existed before publishedAt (real timestamp of when status became 'published',
+  // used for "yayınlanalı X önce" tooltips) was introduced; backfill the column.
+  const scheduleEntriesInfo = await db.execute(`PRAGMA table_info(schedule_entries)`);
+  const hasPublishedAt = scheduleEntriesInfo.rows.some((row) => row.name === "publishedAt");
+  if (!hasPublishedAt) {
+    try {
+      await db.execute(`ALTER TABLE schedule_entries ADD COLUMN publishedAt TEXT`);
+    } catch (err) {
+      const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+      if (!isDuplicateColumn) throw err;
+    }
+  }
 
   // Per-month override of a channel's weekly publish-day pattern. Absent a row here for a given
   // (channel, month), the calendar falls back to the channel's global `publishDays` template —

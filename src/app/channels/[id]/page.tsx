@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Users, Video, Eye } from "lucide-react";
+import { ArrowLeft, ExternalLink, Settings2, ListVideo, Users, Video, Eye } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { getChannelById } from "@/lib/db/channels";
 import { getCategoryById } from "@/lib/db/categories";
@@ -11,6 +11,7 @@ import { TrendChart } from "@/components/charts/TrendChart";
 import { formatCompactNumber } from "@/lib/format";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
+import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
 import { ChannelDetailsClient } from "./ChannelDetailsClient";
 
 export const dynamic = "force-dynamic";
@@ -46,12 +47,14 @@ export default async function ChannelDetailPage({ params }: PageProps) {
       </Link>
 
       <div className="flex flex-col gap-4 rounded-lg border border-line bg-surface p-5 sm:flex-row">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={channel.thumbnailUrl}
-          alt={channel.name}
-          className="h-24 w-24 shrink-0 rounded-full object-cover"
-        />
+        <a href={channel.url} target="_blank" rel="noopener noreferrer" title="YouTube'da aç" className="shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={channel.thumbnailUrl}
+            alt={channel.name}
+            className="h-24 w-24 rounded-full object-cover transition-opacity duration-150 hover:opacity-80"
+          />
+        </a>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold text-ink">{channel.name}</h1>
@@ -103,6 +106,25 @@ export default async function ChannelDetailPage({ params }: PageProps) {
           </div>
 
           {channel.notes && <p className="mt-3 text-sm text-ink-muted">{channel.notes}</p>}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href={studioCustomizeUrl(channel.youtubeId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover hover:text-ink"
+            >
+              <Settings2 className="h-3.5 w-3.5" /> Kanalı Özelleştir
+            </a>
+            <a
+              href={studioVideosUrl(channel.youtubeId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-medium text-ink-muted transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover hover:text-ink"
+            >
+              <ListVideo className="h-3.5 w-3.5" /> Videoları Yönet
+            </a>
+          </div>
         </div>
       </div>
 

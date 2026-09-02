@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { useMemo, useState } from "react";
 import { Search, Video } from "lucide-react";
-import type { Category, Channel, ChannelPublishCount, Concept } from "@/types";
+import type { Category, Channel, Concept } from "@/types";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Button } from "@/components/ui/Button";
 import { getLanguageName } from "@/lib/constants/languages";
-import { yearMonthRange } from "@/lib/weekdays";
+import { formatCompactNumber } from "@/lib/format";
 
 interface VideoCountsPanelProps {
   channels: Channel[];
@@ -22,10 +20,6 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
   const [categoryFilter, setCategoryFilter] = useState("");
   const [conceptFilter, setConceptFilter] = useState("");
   const [languageFilter, setLanguageFilter] = useState("");
-  const [startMonth, setStartMonth] = useState("");
-  const [endMonth, setEndMonth] = useState("");
-  const [counts, setCounts] = useState<ChannelPublishCount[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const conceptById = useMemo(() => new Map(concepts.map((c) => [c.id, c])), [concepts]);
@@ -35,41 +29,6 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
     channels.forEach((c) => c.languages.forEach((l) => codes.add(l)));
     return [...codes].sort();
   }, [channels]);
-
-  const loadCounts = useCallback(async () => {
-    setLoading(true);
-    try {
-      let from = startMonth;
-      let to = endMonth;
-      if (from && to && from > to) [from, to] = [to, from];
-
-      const params = new URLSearchParams();
-      if (from) params.set("start", yearMonthRange(from).start);
-      if (to) params.set("end", yearMonthRange(to).end);
-
-      const res = await fetch(`/api/schedule/counts?${params.toString()}`);
-      if (!res.ok) throw new Error("Video sayıları yüklenemedi");
-      const data: ChannelPublishCount[] = await res.json();
-      setCounts(data);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Video sayıları yüklenemedi");
-    } finally {
-      setLoading(false);
-    }
-  }, [startMonth, endMonth]);
-
-  useEffect(() => {
-    // loadCounts() only calls setState after its internal `await`, never synchronously —
-    // the standard fetch-on-mount pattern, not the cascading-render case the rule guards against.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadCounts();
-  }, [loadCounts]);
-
-  const countByChannel = useMemo(() => {
-    const map = new Map<number, number>();
-    counts.forEach((c) => map.set(c.channelId, c.count));
-    return map;
-  }, [counts]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -81,16 +40,19 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
         if (languageFilter && !c.languages.includes(languageFilter)) return false;
         return true;
       })
-      .map((channel) => ({ channel, count: countByChannel.get(channel.id) ?? 0 }))
-      .sort((a, b) => b.count - a.count || a.channel.name.localeCompare(b.channel.name));
-  }, [channels, search, categoryFilter, conceptFilter, languageFilter, countByChannel]);
+      .sort((a, b) => (b.videoCount ?? 0) - (a.videoCount ?? 0) || a.name.localeCompare(b.name));
+  }, [channels, search, categoryFilter, conceptFilter, languageFilter]);
 
-  const totalCount = useMemo(() => rows.reduce((sum, r) => sum + r.count, 0), [rows]);
+  const totalCount = useMemo(
+    () => rows.reduce((sum, c) => sum + (c.videoCount ?? 0), 0),
+    [rows]
+  );
 
   return (
     <div className="animate-scale-in mb-6 origin-top rounded-lg border border-line bg-surface p-4">
       <p className="mb-3 text-sm text-ink-muted">
-        Her kanalın takvimde &quot;Yayınlandı&quot; işaretlenen video sayısını gösterir.
+        Her kanalın YouTube&apos;daki toplam video sayısını gösterir (kanal yenilendiğinde
+        güncellenir).
       </p>
 
       <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -132,43 +94,8 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
         </Select>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="w-44">
-          <Input
-            type="month"
-            value={startMonth}
-            onChange={(e) => setStartMonth(e.target.value)}
-            aria-label="Başlangıç ayı"
-          />
-        </div>
-        <span className="text-ink-faint">–</span>
-        <div className="w-44">
-          <Input
-            type="month"
-            value={endMonth}
-            onChange={(e) => setEndMonth(e.target.value)}
-            aria-label="Bitiş ayı"
-          />
-        </div>
-      </div>
-
-      {(startMonth || endMonth) && (
-        <div className="mb-3 -mt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setStartMonth("");
-              setEndMonth("");
-            }}
-          >
-            Tarih filtresini temizle
-          </Button>
-        </div>
-      )}
-
       <p className="mb-3 text-sm text-ink-faint">
-        {rows.length} kanal · toplam {totalCount} video yayınlandı
+        {rows.length} kanal · toplam {formatCompactNumber(totalCount)} video
       </p>
 
       {channels.length === 0 ? (
@@ -186,20 +113,28 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
                 <th className="px-4 py-2.5 text-right">Video Sayısı</th>
               </tr>
             </thead>
-            <tbody className={loading ? "opacity-50" : undefined}>
-              {rows.map(({ channel, count }) => {
+            <tbody>
+              {rows.map((channel) => {
                 const category = channel.categoryId ? categoryById.get(channel.categoryId) : undefined;
                 const concept = channel.conceptId ? conceptById.get(channel.conceptId) : undefined;
                 return (
                   <tr key={channel.id} className="border-b border-line bg-surface-2/40 last:border-b-0">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={channel.thumbnailUrl}
-                          alt={channel.name}
-                          className="h-8 w-8 shrink-0 rounded-full object-cover"
-                        />
+                        <a
+                          href={channel.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="YouTube'da aç"
+                          className="shrink-0"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={channel.thumbnailUrl}
+                            alt={channel.name}
+                            className="h-8 w-8 rounded-full object-cover transition-opacity duration-150 hover:opacity-80"
+                          />
+                        </a>
                         <span className="min-w-0 truncate font-medium text-ink" title={channel.name}>
                           {channel.name}
                         </span>
@@ -221,7 +156,8 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-                        <Video className="h-3.5 w-3.5 text-ink-faint" /> {count}
+                        <Video className="h-3.5 w-3.5 text-ink-faint" />
+                        {formatCompactNumber(channel.videoCount)}
                       </span>
                     </td>
                   </tr>

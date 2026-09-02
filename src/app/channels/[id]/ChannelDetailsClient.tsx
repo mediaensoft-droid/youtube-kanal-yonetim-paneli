@@ -10,12 +10,14 @@ import {
   MessageCircle,
   RefreshCw,
   Repeat,
+  ExternalLink,
 } from "lucide-react";
 import type { ChannelDetails, RecentVideo } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { StatTile } from "@/components/StatTile";
 import { formatCompactNumber, formatDate, formatDuration } from "@/lib/format";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
+import { studioVideoEditUrl } from "@/lib/studioLinks";
 
 interface ChannelDetailsClientProps {
   channelId: number;
@@ -155,14 +157,16 @@ export function ChannelDetailsClient({ channelId }: ChannelDetailsClientProps) {
         ) : (
           <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.recentVideos.map((video) => (
-              <a
+              <div
                 key={video.videoId}
-                href={`https://www.youtube.com/watch?v=${video.videoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="group overflow-hidden rounded-lg border border-line bg-surface transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-xl hover:shadow-black/30"
               >
-                <div className="relative aspect-video w-full overflow-hidden bg-surface-2">
+                <a
+                  href={`https://www.youtube.com/watch?v=${video.videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative block aspect-video w-full overflow-hidden bg-surface-2"
+                >
                   {video.thumbnailUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -176,11 +180,17 @@ export function ChannelDetailsClient({ channelId }: ChannelDetailsClientProps) {
                       {formatDuration(video.durationSeconds)}
                     </span>
                   )}
-                </div>
+                </a>
                 <div className="p-3">
-                  <h3 className="line-clamp-2 text-sm font-medium text-ink" title={video.title}>
+                  <a
+                    href={`https://www.youtube.com/watch?v=${video.videoId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="line-clamp-2 text-sm font-medium text-ink hover:text-brand"
+                    title={video.title}
+                  >
                     {video.title}
-                  </h3>
+                  </a>
                   <p className="mt-1 text-xs text-ink-faint">{formatDate(video.publishedAt)}</p>
                   <div className="mt-2 flex items-center gap-3 text-xs text-ink-muted">
                     <span className="flex items-center gap-1">
@@ -193,8 +203,16 @@ export function ChannelDetailsClient({ channelId }: ChannelDetailsClientProps) {
                       <MessageCircle className="h-3.5 w-3.5" /> {formatCompactNumber(video.commentCount)}
                     </span>
                   </div>
+                  <a
+                    href={studioVideoEditUrl(video.videoId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 flex items-center gap-1 text-xs font-medium text-ink-muted transition-colors duration-150 hover:text-brand"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Video ayrıntıları
+                  </a>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         )}

@@ -107,6 +107,7 @@ export interface ScheduleEntry {
   title: string | null;
   status: ScheduleStatus;
   notes: string | null;
+  publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -134,7 +135,3 @@ export interface UpsertChannelMonthPatternInput {
   publishDays: number[];
 }
 
-export interface ChannelPublishCount {
-  channelId: number;
-  count: number;
-}

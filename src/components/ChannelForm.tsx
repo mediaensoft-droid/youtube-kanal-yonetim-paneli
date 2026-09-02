@@ -120,12 +120,14 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
 
       {mode === "edit" && initialChannel && (
         <div className="flex items-center gap-3 rounded-md border border-line bg-surface p-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={initialChannel.thumbnailUrl}
-            alt={initialChannel.name}
-            className="h-10 w-10 rounded-full object-cover"
-          />
+          <a href={initialChannel.url} target="_blank" rel="noopener noreferrer" title="YouTube'da aç">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={initialChannel.thumbnailUrl}
+              alt={initialChannel.name}
+              className="h-10 w-10 rounded-full object-cover transition-opacity duration-150 hover:opacity-80"
+            />
+          </a>
           <div>
             <p className="text-sm font-medium text-ink">{initialChannel.name}</p>
             <p className="text-xs text-ink-faint">

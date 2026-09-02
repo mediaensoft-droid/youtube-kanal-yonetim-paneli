@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { WEEKDAYS, isoWeekday, toDateKey, toYearMonth } from "@/lib/weekdays";
 import { getLanguageName } from "@/lib/constants/languages";
+import { formatDate, formatRelativeTime } from "@/lib/format";
 import { VideoCountsPanel } from "./VideoCountsPanel";
 
 interface CalendarClientProps {
@@ -79,6 +80,9 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   const [activeSlot, setActiveSlot] = useState<{ date: string; channelId: number | null } | null>(
     null
   );
+  const [contextMenu, setContextMenu] = useState<
+    { date: string; channelId: number; x: number; y: number } | null
+  >(null);
 
   const panelAvailableLanguages = useMemo(() => {
     const codes = new Set<string>();
@@ -246,6 +250,40 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
     }
   }
 
+  async function quickSetStatus(channelId: number, date: string, status: ScheduleStatus) {
+    const existing = entries.find((e) => e.channelId === channelId && e.date === date);
+    await saveEntry({
+      channelId,
+      date,
+      status,
+      title: existing?.title ?? null,
+      notes: existing?.notes ?? null,
+    });
+    setContextMenu(null);
+  }
+
+  function openContextMenu(e: React.MouseEvent, date: string, channelId: number) {
+    e.preventDefault();
+    const menuWidth = 168;
+    const menuHeight = 132;
+    setContextMenu({
+      date,
+      channelId,
+      x: Math.min(e.clientX, window.innerWidth - menuWidth - 8),
+      y: Math.min(e.clientY, window.innerHeight - menuHeight - 8),
+    });
+  }
+
+  function slotTooltip(slot: Slot, date: Date): string {
+    const lines = [slot.channel.name, `Tarih: ${formatDate(toDateKey(date))}`];
+    if (slot.entry?.status === "published" && slot.entry.publishedAt) {
+      lines.push(`${formatRelativeTime(slot.entry.publishedAt)} yayınlandı`);
+    } else {
+      lines.push(STATUS_META[slot.entry?.status ?? "planned"].label);
+    }
+    return lines.join("\n");
+  }
+
   async function removeEntry(entry: ScheduleEntry) {
     try {
       const res = await fetch(`/api/schedule/${entry.id}`, { method: "DELETE" });
@@ -332,12 +370,14 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                 key={channel.id}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-surface-2 p-3"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={channel.thumbnailUrl}
-                  alt={channel.name}
-                  className="h-8 w-8 shrink-0 rounded-full object-cover"
-                />
+                <a href={channel.url} target="_blank" rel="noopener noreferrer" title="YouTube'da aç">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={channel.thumbnailUrl}
+                    alt={channel.name}
+                    className="h-8 w-8 shrink-0 rounded-full object-cover transition-opacity duration-150 hover:opacity-80"
+                  />
+                </a>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
                   {channel.name}
                 </span>
@@ -447,13 +487,20 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                       <button
                         key={slot.channel.id}
                         onClick={() => setActiveSlot({ date: key, channelId: slot.channel.id })}
+                        onContextMenu={(e) => openContextMenu(e, key, slot.channel.id)}
                         className={clsx(
                           "flex w-full items-center gap-1.5 truncate rounded border px-2 py-1 text-left text-xs",
                           meta.chip
                         )}
-                        title={slot.entry?.title ?? slot.channel.name}
+                        title={slotTooltip(slot, date)}
                       >
                         <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={slot.channel.thumbnailUrl}
+                          alt=""
+                          className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
+                        />
                         <span className="truncate">{slot.channel.name}</span>
                       </button>
                     );
@@ -472,6 +519,35 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
           </span>
         ))}
       </div>
+
+      {contextMenu && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setContextMenu(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setContextMenu(null);
+            }}
+          />
+          <div
+            className="animate-scale-in fixed z-50 w-40 origin-top-left rounded-md border border-line-strong bg-surface-2 p-1 shadow-2xl shadow-black/50"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+          >
+            {(Object.keys(STATUS_META) as ScheduleStatus[]).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => quickSetStatus(contextMenu.channelId, contextMenu.date, s)}
+                className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+              >
+                <span className={clsx("h-2 w-2 shrink-0 rounded-full", STATUS_META[s].dot)} />
+                {STATUS_META[s].label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {activeSlot && (
         <EntryModal

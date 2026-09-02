@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Pencil, Trash2, BarChart3, Users, Video } from "lucide-react";
+import { RefreshCw, Pencil, Trash2, BarChart3, Settings2, ListVideo, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
 import { CategoryBadge } from "@/components/CategoryBadge";
@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
+import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
 
 interface ChannelListRowProps {
   channel: Channel;
@@ -130,6 +131,26 @@ export function ChannelListRow({ channel, category, concept, onRefreshed, onDele
           >
             <Pencil className="h-4 w-4" />
           </Link>
+          <a
+            href={studioCustomizeUrl(channel.youtubeId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Kanalı özelleştir"
+            className="flex items-center gap-1 rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+          >
+            <Settings2 className="h-4 w-4" />
+          </a>
+          <a
+            href={studioVideosUrl(channel.youtubeId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Videoları yönet"
+            className="flex items-center gap-1 rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+          >
+            <ListVideo className="h-4 w-4" />
+          </a>
           <button
             onClick={(e) => {
               e.stopPropagation();
