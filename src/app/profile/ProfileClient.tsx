@@ -30,6 +30,9 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
   const [image, setImage] = useState(user.image);
   const [uploading, setUploading] = useState(false);
   const [name, setName] = useState(user.name ?? "");
+  // The persisted name, shown in the header/avatar — only advances once a save actually
+  // succeeds, so the header doesn't flicker to a half-typed value while editing.
+  const [displayName, setDisplayName] = useState(user.name);
   const [savingName, setSavingName] = useState(false);
 
   const planId: PlanId = (["free", "standart", "pro", "ultra"] as PlanId[]).includes(
@@ -96,6 +99,7 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Kaydedilemedi");
+      setDisplayName(trimmed);
       await update();
       toast.success("İsim güncellendi");
     } catch (err) {
@@ -105,8 +109,8 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
     }
   }
 
-  const initial = (user.name ?? user.email).charAt(0).toUpperCase();
-  const nameChanged = name.trim() !== (user.name ?? "") && name.trim().length > 0;
+  const initial = (displayName ?? user.email).charAt(0).toUpperCase();
+  const nameChanged = name.trim() !== (displayName ?? "") && name.trim().length > 0;
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-2xl">
@@ -119,7 +123,7 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={image}
-                alt={user.name ?? user.email}
+                alt={displayName ?? user.email}
                 className="h-24 w-24 rounded-full object-cover"
               />
             ) : (
@@ -146,7 +150,7 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold text-ink">{user.name ?? "İsimsiz kullanıcı"}</p>
+            <p className="text-lg font-semibold text-ink">{displayName ?? "İsimsiz kullanıcı"}</p>
             <p className="truncate text-sm text-ink-muted">{user.email}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Button
