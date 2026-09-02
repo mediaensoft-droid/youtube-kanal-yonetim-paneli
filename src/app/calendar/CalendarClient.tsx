@@ -606,7 +606,10 @@ function EntryModal({
   const channel = channels.find((c) => c.id === channelId);
   const inPattern = channel ? isInPattern(channel, new Date(`${date}T00:00:00`)) : false;
 
-  return (
+  // Portal to <body> — see the note on the context menu above: this page's root wrapper carries
+  // `.animate-fade-in-up`, which leaves a non-`none` transform behind, making it the containing
+  // block for `position: fixed` descendants left un-portaled.
+  return createPortal(
     <div
       className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={onClose}
@@ -657,7 +660,8 @@ function EntryModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

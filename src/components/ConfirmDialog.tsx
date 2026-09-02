@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 
 interface ConfirmDialogProps {
@@ -25,7 +26,12 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!open) return null;
 
-  return (
+  // Portal to <body>: every page root carries `.animate-fade-in-up`, whose keyframe ends on
+  // `transform: translateY(0)` — a non-`none` transform, which makes that ancestor the
+  // containing block for `position: fixed` descendants. Left un-portaled, this dialog renders
+  // centered within the (possibly very tall, scrolled-away) page content instead of the
+  // viewport, making it appear to do nothing when opened on a scrolled page.
+  return createPortal(
     <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="animate-scale-in w-full max-w-sm rounded-lg border border-line-strong bg-surface-2 p-5 shadow-2xl shadow-black/50">
         <h3 className="text-base font-semibold text-ink">{title}</h3>
@@ -39,6 +45,7 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
