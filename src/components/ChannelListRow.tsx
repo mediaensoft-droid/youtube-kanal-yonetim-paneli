@@ -63,50 +63,52 @@ export function ChannelListRow({ channel, category, concept, onRefreshed, onDele
     <>
       <div
         onClick={() => window.open(channel.url, "_blank", "noopener,noreferrer")}
-        className="group flex cursor-pointer items-center gap-4 rounded-lg border border-line bg-surface p-3 transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover/40"
+        className="group flex cursor-pointer flex-col gap-3 rounded-lg border border-line bg-surface p-3 transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover/40 sm:flex-row sm:items-center sm:gap-4"
       >
-        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-surface-2">
-          {channel.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={channel.thumbnailUrl}
-              alt={channel.name}
-              className="h-full w-full object-contain"
-            />
-          ) : null}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-sm font-semibold text-ink" title={channel.name}>
-              {channel.name}
-            </h3>
-            {category ? (
-              <CategoryBadge name={category.name} color={category.color} />
-            ) : (
-              <span className="text-xs text-ink-faint">Kategorisiz</span>
-            )}
-            {concept && <CategoryBadge name={concept.name} color={concept.color} />}
+        <div className="flex min-w-0 flex-1 items-center gap-4">
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-surface-2">
+            {channel.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={channel.thumbnailUrl}
+                alt={channel.name}
+                className="h-full w-full object-contain"
+              />
+            ) : null}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
-            <span className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" /> {formatCompactNumber(channel.subscriberCount)}
-            </span>
-            <span className="flex items-center gap-1">
-              <Video className="h-3.5 w-3.5" /> {formatCompactNumber(channel.videoCount)}
-            </span>
-            {channel.languages.map((code) => (
-              <span key={`lang-${code}`}>{getLanguageName(code)}</span>
-            ))}
-            {channel.countries.map((code) => (
-              <span key={`country-${code}`}>
-                {countryFlagEmoji(code)} {getCountryName(code)}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-sm font-semibold text-ink" title={channel.name}>
+                {channel.name}
+              </h3>
+              {category ? (
+                <CategoryBadge name={category.name} color={category.color} />
+              ) : (
+                <span className="text-xs text-ink-faint">Kategorisiz</span>
+              )}
+              {concept && <CategoryBadge name={concept.name} color={concept.color} />}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
+              <span className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" /> {formatCompactNumber(channel.subscriberCount)}
               </span>
-            ))}
+              <span className="flex items-center gap-1">
+                <Video className="h-3.5 w-3.5" /> {formatCompactNumber(channel.videoCount)}
+              </span>
+              {channel.languages.map((code) => (
+                <span key={`lang-${code}`}>{getLanguageName(code)}</span>
+              ))}
+              {channel.countries.map((code) => (
+                <span key={`country-${code}`}>
+                  {countryFlagEmoji(code)} {getCountryName(code)}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 flex-wrap items-center gap-1 border-t border-line pt-2 sm:border-t-0 sm:pt-0">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
