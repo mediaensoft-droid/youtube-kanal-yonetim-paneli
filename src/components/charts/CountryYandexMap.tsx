@@ -115,6 +115,8 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
         // it can misjudge the container as tiny and compute an absurd zoom to "fit" —
         // this forces a resync once the real size is known.
         mapRef.current.container.fitToViewport();
+        // TEMP DEBUG — remove after diagnosing the black-map issue.
+        (window as unknown as { __yandexMap?: ymaps.Map }).__yandexMap = mapRef.current;
         setMapReady(true);
       })
       .catch(() => {
