@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import clsx from "clsx";
-import { ChevronLeft, ChevronRight, Check, X as XIcon, Plus, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X as XIcon, Plus, RotateCcw, Clock } from "lucide-react";
 import type { Category, Channel, ChannelMonthPattern, Concept, ScheduleEntry, ScheduleStatus } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -66,7 +66,7 @@ function monthRange(year: number, month: number) {
 }
 
 export function CalendarClient({ initialChannels, categories, concepts }: CalendarClientProps) {
-  const [channels] = useState<Channel[]>(initialChannels);
+  const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -217,6 +217,20 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
       });
   }
 
+  function updatePublishTime(channel: Channel, time: string) {
+    const publishTime = time || null;
+    setChannels((prev) => prev.map((c) => (c.id === channel.id ? { ...c, publishTime } : c)));
+
+    fetch(`/api/channels/${channel.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publishTime }),
+    }).catch(() => {
+      toast.error("Kaydedilemedi");
+      setChannels((prev) => prev.map((c) => (c.id === channel.id ? channel : c)));
+    });
+  }
+
   function goToMonth(delta: number) {
     setCursor((prev) => {
       const d = new Date(prev.year, prev.month + delta, 1);
@@ -277,6 +291,9 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
 
   function slotTooltip(slot: Slot, date: Date): string {
     const lines = [slot.channel.name, `Tarih: ${formatDate(toDateKey(date))}`];
+    if (slot.channel.publishTime) {
+      lines.push(`Saat: ${slot.channel.publishTime}`);
+    }
     if (slot.entry?.status === "published" && slot.entry.publishedAt) {
       lines.push(`${formatRelativeTime(slot.entry.publishedAt)} yayınlandı`);
     } else {
@@ -316,11 +333,12 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
         <div className="animate-scale-in mb-6 origin-top rounded-lg border border-line bg-surface p-4">
           <p className="mb-3 text-sm text-ink-muted">
             Her kanalın haftalık olarak hangi günler video yayınlayacağını belirleyin. Takvimde o
-            kanal o gün otomatik olarak &quot;planlandı&quot; gösterilir. Buradaki seçim yalnızca{" "}
+            kanal o gün otomatik olarak &quot;planlandı&quot; gösterilir. Gün seçimi yalnızca{" "}
             <strong className="text-ink">
               {MONTH_LABELS[cursor.month]} {cursor.year}
             </strong>{" "}
-            ayı için geçerlidir — diğer aylar etkilenmez.
+            ayı için geçerlidir — diğer aylar etkilenmez. Yayın saati ise kanalın tüm aylar için
+            geçerli tek bir varsayılanıdır.
           </p>
           {channels.length === 0 && (
             <p className="text-sm text-ink-faint">Henüz kanal eklenmedi.</p>
@@ -401,6 +419,16 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                       </button>
                     );
                   })}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
+                  <input
+                    type="time"
+                    value={channel.publishTime ?? ""}
+                    onChange={(e) => updatePublishTime(channel, e.target.value)}
+                    aria-label={`${channel.name} yayın saati`}
+                    className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  />
                 </div>
               </div>
             ))}

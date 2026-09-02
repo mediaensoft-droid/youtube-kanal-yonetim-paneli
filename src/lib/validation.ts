@@ -18,6 +18,11 @@ export const updateChannelSchema = z.object({
   countries: z.array(z.string()).optional(),
   notes: z.string().nullable().optional(),
   publishDays: z.array(z.number().int().min(1).max(7)).optional(),
+  publishTime: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Geçerli bir saat girin (SS:DD)")
+    .nullable()
+    .optional(),
   url: z.string().trim().min(1).optional(),
 });
 

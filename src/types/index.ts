@@ -27,6 +27,7 @@ export interface Channel {
   countries: string[];
   notes: string | null;
   publishDays: number[];
+  publishTime: string | null;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -56,6 +57,7 @@ export interface UpdateChannelInput {
   countries?: string[];
   notes?: string | null;
   publishDays?: number[];
+  publishTime?: string | null;
   url?: string;
 }
 

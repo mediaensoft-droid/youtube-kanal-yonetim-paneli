@@ -68,6 +68,7 @@ async function bootstrapSchema(): Promise<void> {
       countries        TEXT NOT NULL DEFAULT '[]',
       notes            TEXT,
       publishDays      TEXT NOT NULL DEFAULT '[]',
+      publishTime      TEXT,
       lastRefreshedAt  TEXT,
       createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -126,6 +127,17 @@ async function bootstrapSchema(): Promise<void> {
   if (!hasPublishDays) {
     try {
       await db.execute(`ALTER TABLE channels ADD COLUMN publishDays TEXT NOT NULL DEFAULT '[]'`);
+    } catch (err) {
+      const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+      if (!isDuplicateColumn) throw err;
+    }
+  }
+
+  // channels existed before publishTime (default "HH:MM" upload time) was introduced; backfill the column.
+  const hasPublishTime = tableInfo.rows.some((row) => row.name === "publishTime");
+  if (!hasPublishTime) {
+    try {
+      await db.execute(`ALTER TABLE channels ADD COLUMN publishTime TEXT`);
     } catch (err) {
       const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
       if (!isDuplicateColumn) throw err;

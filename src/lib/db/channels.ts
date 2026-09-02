@@ -17,6 +17,7 @@ interface ChannelRow {
   countries: string;
   notes: string | null;
   publishDays: string;
+  publishTime: string | null;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -42,6 +43,7 @@ function rowToChannel(row: ChannelRow): Channel {
     countries: JSON.parse(row.countries) as string[],
     notes: row.notes,
     publishDays: JSON.parse(row.publishDays) as number[],
+    publishTime: row.publishTime,
     lastRefreshedAt: row.lastRefreshedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -161,6 +163,7 @@ export interface UpdateChannelManualFields {
   countries?: string[];
   notes?: string | null;
   publishDays?: number[];
+  publishTime?: string | null;
   url?: string;
 }
 
@@ -179,11 +182,12 @@ export async function updateChannelManualFields(
   const countries = input.countries ?? existing.countries;
   const notes = input.notes !== undefined ? input.notes : existing.notes;
   const publishDays = input.publishDays ?? existing.publishDays;
+  const publishTime = input.publishTime !== undefined ? input.publishTime : existing.publishTime;
   const url = input.url ?? existing.url;
 
   await run(
     `UPDATE channels
-       SET categoryId = ?, conceptId = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       SET categoryId = ?, conceptId = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, publishTime = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE id = ? AND userId = ?`,
     [
       categoryId,
@@ -192,6 +196,7 @@ export async function updateChannelManualFields(
       JSON.stringify(countries),
       notes,
       JSON.stringify(publishDays),
+      publishTime,
       url,
       id,
       userId,
