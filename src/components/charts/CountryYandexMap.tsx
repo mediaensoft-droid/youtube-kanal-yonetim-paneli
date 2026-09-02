@@ -10,6 +10,11 @@ import { COUNTRY_MAP_IDS } from "@/lib/constants/countryMapIds";
 
 interface CountryYandexMapProps {
   data: CodeDistributionEntry[];
+  // Yandex's JS API doesn't reject/throw on an invalid or not-yet-fully-activated key — it just
+  // logs "(Yandex Maps JS API): Invalid API key" to the console and renders a tile-less black
+  // map. There's no documented catchable event for this in the 2.1 API, so we intercept
+  // console.warn during load to detect it and let the caller fall back to a working map instead.
+  onInvalidKey?: () => void;
 }
 
 const YANDEX_API_KEY = process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY;
@@ -44,7 +49,7 @@ function loadYandexMapsScript(apiKey: string): Promise<void> {
   return scriptLoadPromise;
 }
 
-export function CountryYandexMap({ data }: CountryYandexMapProps) {
+export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<ymaps.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -54,10 +59,22 @@ export function CountryYandexMap({ data }: CountryYandexMapProps) {
   useEffect(() => {
     if (!YANDEX_API_KEY) return;
     let cancelled = false;
+    let invalidKey = false;
+
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      if (/invalid api.?key/i.test(args.map(String).join(" "))) invalidKey = true;
+      originalWarn.apply(console, args);
+    };
 
     loadYandexMapsScript(YANDEX_API_KEY)
       .then(() => new Promise<void>((resolve) => window.ymaps!.ready(resolve)))
       .then(() => {
+        console.warn = originalWarn;
+        if (invalidKey) {
+          if (!cancelled) onInvalidKey?.();
+          return;
+        }
         if (cancelled || !containerRef.current || mapRef.current) return;
         mapRef.current = new window.ymaps!.Map(
           containerRef.current,
@@ -79,12 +96,16 @@ export function CountryYandexMap({ data }: CountryYandexMapProps) {
         setMapReady(true);
       })
       .catch(() => {
+        console.warn = originalWarn;
         if (!cancelled) setError("load-failed");
       });
 
     return () => {
       cancelled = true;
+      console.warn = originalWarn;
     };
+    // Runs once on mount only — deliberately ignores onInvalidKey identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
