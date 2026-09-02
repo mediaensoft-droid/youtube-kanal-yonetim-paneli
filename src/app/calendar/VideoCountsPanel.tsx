@@ -133,21 +133,23 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Input
-          type="month"
-          value={startMonth}
-          onChange={(e) => setStartMonth(e.target.value)}
-          aria-label="Başlangıç ayı"
-          className="w-auto"
-        />
+        <div className="w-44">
+          <Input
+            type="month"
+            value={startMonth}
+            onChange={(e) => setStartMonth(e.target.value)}
+            aria-label="Başlangıç ayı"
+          />
+        </div>
         <span className="text-ink-faint">–</span>
-        <Input
-          type="month"
-          value={endMonth}
-          onChange={(e) => setEndMonth(e.target.value)}
-          aria-label="Bitiş ayı"
-          className="w-auto"
-        />
+        <div className="w-44">
+          <Input
+            type="month"
+            value={endMonth}
+            onChange={(e) => setEndMonth(e.target.value)}
+            aria-label="Bitiş ayı"
+          />
+        </div>
       </div>
 
       {(startMonth || endMonth) && (
