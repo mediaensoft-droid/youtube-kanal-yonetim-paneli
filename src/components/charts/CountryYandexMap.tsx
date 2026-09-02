@@ -99,8 +99,14 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
             // Without these, zooming/panning past the world's edge repeats the map
             // sideways and shows empty gray strips above/below — restrictMapArea
             // pins panning to the real world extent, minZoom stops "-" before the
-            // whole world no longer fills the view.
-            restrictMapArea: true,
+            // whole world no longer fills the view. Explicit bounds (rather than the
+            // boolean `true` shorthand, which asks Yandex to derive bounds from the
+            // current map type) avoid an internal bounds-fitting bug that was forcing
+            // the map to an unusable street-level zoom on load.
+            restrictMapArea: [
+              [-85, -180],
+              [85, 180],
+            ],
             minZoom: 2,
           }
         );
