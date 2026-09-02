@@ -99,24 +99,17 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
             // Without these, zooming/panning past the world's edge repeats the map
             // sideways and shows empty gray strips above/below — restrictMapArea
             // pins panning to the real world extent, minZoom stops "-" before the
-            // whole world no longer fills the view. Explicit bounds (rather than the
-            // boolean `true` shorthand, which asks Yandex to derive bounds from the
-            // current map type) avoid an internal bounds-fitting bug that was forcing
-            // the map to an unusable street-level zoom on load.
+            // whole world no longer fills the view. The bounds stop just short of
+            // the full -180/180 span on purpose: touching both edges makes Yandex
+            // see a zero-width area at the antimeridian seam, which made it collapse
+            // to its maximum zoom (23) centered on the seam — a solid black/gray map.
             restrictMapArea: [
-              [-85, -180],
-              [85, 180],
+              [-85, -179.9],
+              [85, 179.9],
             ],
             minZoom: 2,
           }
         );
-        // Yandex sizes the map from the container's dimensions at the instant of
-        // construction. If layout hasn't fully settled yet (e.g. mid CSS transition),
-        // it can misjudge the container as tiny and compute an absurd zoom to "fit" —
-        // this forces a resync once the real size is known.
-        mapRef.current.container.fitToViewport();
-        // TEMP DEBUG — remove after diagnosing the black-map issue.
-        (window as unknown as { __yandexMap?: ymaps.Map }).__yandexMap = mapRef.current;
         setMapReady(true);
       })
       .catch(() => {
@@ -139,9 +132,8 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
     };
   }, []);
 
-  // Re-sync the map if the container's size changes after creation (e.g. a layout
-  // shift while the dashboard's entrance animations are still settling) — otherwise
-  // the zoom Yandex computed at construction time can stay wrong indefinitely.
+  // Re-sync the map's internal size if the container's dimensions change after
+  // creation (sidebar toggle, window resize, etc.) — Yandex doesn't do this on its own.
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(() => {
