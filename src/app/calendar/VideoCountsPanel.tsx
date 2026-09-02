@@ -93,8 +93,8 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
         Her kanalın takvimde &quot;Yayınlandı&quot; işaretlenen video sayısını gösterir.
       </p>
 
-      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6">
-        <div className="relative lg:col-span-2">
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
           <Input
             value={search}
@@ -130,22 +130,24 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
             </option>
           ))}
         </Select>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <Input
-            type="month"
-            value={startMonth}
-            onChange={(e) => setStartMonth(e.target.value)}
-            aria-label="Başlangıç ayı"
-          />
-          <span className="text-ink-faint">–</span>
-          <Input
-            type="month"
-            value={endMonth}
-            onChange={(e) => setEndMonth(e.target.value)}
-            aria-label="Bitiş ayı"
-          />
-        </div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Input
+          type="month"
+          value={startMonth}
+          onChange={(e) => setStartMonth(e.target.value)}
+          aria-label="Başlangıç ayı"
+          className="w-auto"
+        />
+        <span className="text-ink-faint">–</span>
+        <Input
+          type="month"
+          value={endMonth}
+          onChange={(e) => setEndMonth(e.target.value)}
+          aria-label="Bitiş ayı"
+          className="w-auto"
+        />
       </div>
 
       {(startMonth || endMonth) && (
