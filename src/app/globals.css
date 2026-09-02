@@ -143,6 +143,38 @@ input[type="color"] {
 }
 .animate-breathe { animation: breathe 3.2s ease-in-out infinite; }
 
+/* A soft rotating color glow used behind Dashboard card content (CardGlow component) — an
+   oversized, heavily blurred conic gradient so what shows through is just a slow drifting wash
+   of color rather than a visible pie shape. Sits behind the card's actual content, which needs
+   its own `relative z-10` wrapper since an absolutely-positioned element with z-index:auto paints
+   above static in-flow content regardless of DOM order. */
+@keyframes card-glow-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.card-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(220, 38, 38, 0.22) 70deg,
+    transparent 150deg,
+    transparent 210deg,
+    rgba(45, 212, 191, 0.16) 280deg,
+    transparent 360deg
+  );
+  filter: blur(40px);
+  animation: card-glow-spin 16s linear infinite;
+  z-index: 0;
+}
+.card-glow--reverse { animation-duration: 12s; animation-direction: reverse; }
+.card-glow--slow { animation-duration: 26s; }
+.card-glow--subtle { opacity: 0.55; }
+
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -174,7 +206,8 @@ input[type="color"] {
   .animate-float-icon,
   .animated-gradient,
   .animate-pulse-ring,
-  .animate-breathe {
+  .animate-breathe,
+  .card-glow {
     animation: none;
   }
 }

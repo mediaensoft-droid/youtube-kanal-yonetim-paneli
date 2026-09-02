@@ -5,6 +5,7 @@ import { listChannels } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
 import { countByCategory, countByLanguage, countByCountryFull } from "@/lib/stats";
 import { StatTile } from "@/components/StatTile";
+import { CardGlow } from "@/components/CardGlow";
 import { CategoryDistributionChart } from "@/components/charts/CategoryDistributionChart";
 import { LanguageDistributionChart } from "@/components/charts/LanguageDistributionChart";
 import { CountryMapSection } from "@/components/charts/CountryMapSection";
@@ -41,32 +42,44 @@ export default async function DashboardPage() {
       </div>
 
       <div className="stagger grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20">
-          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
-            <PieChart className="animate-breathe h-4 w-4" /> Kategoriye Göre Dağılım
-          </h2>
-          <CategoryDistributionChart data={categoryData} />
+        <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20">
+          <CardGlow />
+          <div className="relative z-10">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
+              <PieChart className="animate-breathe h-4 w-4" /> Kategoriye Göre Dağılım
+            </h2>
+            <CategoryDistributionChart data={categoryData} />
+          </div>
         </div>
 
-        <div className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20">
-          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
-            <Globe2 className="animate-breathe h-4 w-4" /> Dile Göre Dağılım
-          </h2>
-          <LanguageDistributionChart data={languageData} />
+        <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20">
+          <CardGlow variant="reverse" />
+          <div className="relative z-10">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
+              <Globe2 className="animate-breathe h-4 w-4" /> Dile Göre Dağılım
+            </h2>
+            <LanguageDistributionChart data={languageData} />
+          </div>
         </div>
 
-        <div className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20 lg:col-span-2">
-          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
-            <MapPin className="animate-breathe h-4 w-4" /> Ülkeye Göre Dağılım
-          </h2>
-          <CountryMapSection data={countryData} />
+        <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20 lg:col-span-2">
+          <CardGlow variant="subtle" />
+          <div className="relative z-10">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
+              <MapPin className="animate-breathe h-4 w-4" /> Ülkeye Göre Dağılım
+            </h2>
+            <CountryMapSection data={countryData} />
+          </div>
         </div>
 
-        <div className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20 lg:col-span-2">
-          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
-            <Clock className="animate-breathe h-4 w-4" /> Ülke Saatleri
-          </h2>
-          <WorldClocks data={countryData} />
+        <div className="relative overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20 lg:col-span-2">
+          <CardGlow variant="slow" />
+          <div className="relative z-10">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
+              <Clock className="animate-breathe h-4 w-4" /> Ülke Saatleri
+            </h2>
+            <WorldClocks data={countryData} />
+          </div>
         </div>
       </div>
     </div>

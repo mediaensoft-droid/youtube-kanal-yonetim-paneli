@@ -470,75 +470,145 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
           Takvimi kullanmak için önce bir kanal ekleyin.
         </p>
       ) : (
-        <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-line bg-line text-sm">
-          {WEEKDAYS.map((day) => (
-            <div
-              key={day.iso}
-              className="bg-surface-2 px-2 py-2.5 text-center font-medium text-ink-muted"
-            >
-              {day.short}
-            </div>
-          ))}
-          {gridDays.map((date) => {
-            const key = toDateKey(date);
-            const inMonth = date.getMonth() === cursor.month;
-            const isToday = key === today;
-            const slots = slotsForDate(date);
-            return (
-              <div
-                key={key}
-                className={clsx("min-h-[160px] bg-surface p-2", !inMonth && "opacity-40")}
-              >
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span
-                    className={clsx(
-                      "text-sm",
-                      isToday
-                        ? "flex h-6 w-6 items-center justify-center rounded-full bg-brand font-semibold text-white"
-                        : "text-ink-faint"
-                    )}
-                  >
-                    {date.getDate()}
-                  </span>
-                  <button
-                    onClick={() => setActiveSlot({ date: key, channelId: null })}
-                    className="rounded p-1 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-                    aria-label="Video ekle"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="space-y-1.5">
-                  {slots.map((slot) => {
-                    const status = slot.entry?.status ?? "planned";
-                    const meta = STATUS_META[status];
-                    return (
+        <>
+          {/* Mobile: a day-by-day agenda list — the 7-column grid below has no room to breathe
+              on a phone-width screen (channel thumbnails + names inside a ~50px column), so
+              small screens get a vertically-stacked view of the same data instead. */}
+          <div className="space-y-2 sm:hidden">
+            {gridDays
+              .filter((date) => date.getMonth() === cursor.month)
+              .map((date) => {
+                const key = toDateKey(date);
+                const isToday = key === today;
+                const slots = slotsForDate(date);
+                const weekday = WEEKDAYS.find((w) => w.iso === isoWeekday(date));
+                return (
+                  <div key={key} className="rounded-lg border border-line bg-surface p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={clsx(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                            isToday ? "bg-brand text-white" : "bg-surface-2 text-ink-faint"
+                          )}
+                        >
+                          {date.getDate()}
+                        </span>
+                        <span className="text-sm font-medium text-ink">{weekday?.label}</span>
+                      </div>
                       <button
-                        key={slot.channel.id}
-                        onClick={() => setActiveSlot({ date: key, channelId: slot.channel.id })}
-                        onContextMenu={(e) => openContextMenu(e, key, slot.channel.id)}
-                        className={clsx(
-                          "flex w-full items-center gap-1.5 truncate rounded border px-2 py-1 text-left text-xs",
-                          meta.chip
-                        )}
-                        title={slotTooltip(slot, date)}
+                        onClick={() => setActiveSlot({ date: key, channelId: null })}
+                        className="rounded p-1.5 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                        aria-label="Video ekle"
                       >
-                        <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={slot.channel.thumbnailUrl}
-                          alt=""
-                          className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
-                        />
-                        <span className="truncate">{slot.channel.name}</span>
+                        <Plus className="h-4 w-4" />
                       </button>
-                    );
-                  })}
-                </div>
+                    </div>
+                    {slots.length === 0 ? (
+                      <p className="text-xs text-ink-faint">Bu gün için planlanan video yok.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {slots.map((slot) => {
+                          const status = slot.entry?.status ?? "planned";
+                          const meta = STATUS_META[status];
+                          return (
+                            <button
+                              key={slot.channel.id}
+                              onClick={() => setActiveSlot({ date: key, channelId: slot.channel.id })}
+                              className={clsx(
+                                "flex w-full items-center gap-2 truncate rounded border px-2.5 py-2 text-left text-sm",
+                                meta.chip
+                              )}
+                            >
+                              <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={slot.channel.thumbnailUrl}
+                                alt=""
+                                className="h-4 w-4 shrink-0 rounded-full object-cover"
+                              />
+                              <span className="truncate">{slot.channel.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Tablet/desktop: the full month grid. */}
+          <div className="hidden overflow-hidden rounded-lg border border-line bg-line text-sm sm:grid sm:grid-cols-7 sm:gap-px">
+            {WEEKDAYS.map((day) => (
+              <div
+                key={day.iso}
+                className="bg-surface-2 px-2 py-2.5 text-center font-medium text-ink-muted"
+              >
+                {day.short}
               </div>
-            );
-          })}
-        </div>
+            ))}
+            {gridDays.map((date) => {
+              const key = toDateKey(date);
+              const inMonth = date.getMonth() === cursor.month;
+              const isToday = key === today;
+              const slots = slotsForDate(date);
+              return (
+                <div
+                  key={key}
+                  className={clsx("min-h-[160px] bg-surface p-2", !inMonth && "opacity-40")}
+                >
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span
+                      className={clsx(
+                        "text-sm",
+                        isToday
+                          ? "flex h-6 w-6 items-center justify-center rounded-full bg-brand font-semibold text-white"
+                          : "text-ink-faint"
+                      )}
+                    >
+                      {date.getDate()}
+                    </span>
+                    <button
+                      onClick={() => setActiveSlot({ date: key, channelId: null })}
+                      className="rounded p-1 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                      aria-label="Video ekle"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {slots.map((slot) => {
+                      const status = slot.entry?.status ?? "planned";
+                      const meta = STATUS_META[status];
+                      return (
+                        <button
+                          key={slot.channel.id}
+                          onClick={() => setActiveSlot({ date: key, channelId: slot.channel.id })}
+                          onContextMenu={(e) => openContextMenu(e, key, slot.channel.id)}
+                          className={clsx(
+                            "flex w-full items-center gap-1.5 truncate rounded border px-2 py-1 text-left text-xs",
+                            meta.chip
+                          )}
+                          title={slotTooltip(slot, date)}
+                        >
+                          <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={slot.channel.thumbnailUrl}
+                            alt=""
+                            className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
+                          />
+                          <span className="truncate">{slot.channel.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs text-ink-muted">

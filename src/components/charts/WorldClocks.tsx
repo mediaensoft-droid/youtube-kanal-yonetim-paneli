@@ -59,28 +59,28 @@ export function WorldClocks({ data }: WorldClocksProps) {
   }
 
   return (
-    <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {entries.map((entry) => {
         const tz = COUNTRY_TIMEZONES[entry.code];
         const dayOffset = dayOffsetLabel(tz, now);
         return (
           <div
             key={entry.code}
-            className="group flex items-center gap-2.5 rounded-md border border-line bg-surface-2 px-3 py-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md"
+            className="group flex items-center gap-3 rounded-md border border-line bg-surface-2 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md"
           >
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+              <p className="flex items-center gap-2 text-xl font-bold tabular-nums text-ink">
                 <Flag
                   code={entry.code}
-                  className="h-3.5 w-5 shrink-0 rounded-sm object-cover shadow-sm transition-transform duration-200 group-hover:scale-110"
+                  className="h-6 w-9 shrink-0 rounded object-cover shadow-sm transition-transform duration-200 group-hover:scale-110"
                 />
                 {formatClock(tz, now)}
                 {dayOffset && (
-                  <span className="text-[10px] font-normal text-ink-faint">{dayOffset}</span>
+                  <span className="text-xs font-normal text-ink-faint">{dayOffset}</span>
                 )}
               </p>
-              <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-ink-muted" title={entry.name}>
-                <Clock className="h-3 w-3 shrink-0 text-ink-faint" />
+              <p className="mt-1 flex items-center gap-1 truncate text-sm text-ink-muted" title={entry.name}>
+                <Clock className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
                 {entry.name}
               </p>
             </div>

@@ -55,14 +55,19 @@ export function CategoryDistributionChart({ data }: CategoryDistributionChartPro
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    // A horizontal, bottom-aligned legend (rather than the old vertical one docked to the
+    // right) so the donut never has to compete with legend text for horizontal space — that
+    // side-by-side layout was cramped enough on a phone-width card to visually overlap.
+    <ResponsiveContainer width="100%" height={320}>
       <PieChart>
         <Pie
           data={data}
           dataKey="value"
           nameKey="name"
-          innerRadius={60}
-          outerRadius={100}
+          cx="50%"
+          cy="44%"
+          innerRadius={55}
+          outerRadius={90}
           paddingAngle={data.length > 1 ? 2 : 0}
           isAnimationActive={false}
           label={renderPercentLabel}
@@ -74,9 +79,10 @@ export function CategoryDistributionChart({ data }: CategoryDistributionChartPro
         </Pie>
         <Tooltip content={<ChartTooltip />} />
         <Legend
-          layout="vertical"
-          align="right"
-          verticalAlign="middle"
+          layout="horizontal"
+          align="center"
+          verticalAlign="bottom"
+          wrapperStyle={{ paddingTop: 16 }}
           formatter={(value) => <span className="text-sm text-ink-muted">{value}</span>}
         />
       </PieChart>
