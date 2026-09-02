@@ -1,12 +1,20 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { CardGlow } from "@/components/CardGlow";
+import { CardShapes } from "@/components/CardShapes";
 
 interface StatTileProps {
   label: string;
   value: string | number;
   icon?: ReactNode;
+}
+
+// Deterministic seed from the label so each tile's floating shapes look different from its
+// siblings without needing an extra prop at every call site.
+function seedFromLabel(label: string): number {
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) % 1000;
+  return h;
 }
 
 // Counts up from 0 to the target on mount/change instead of just appearing — purely a "the
@@ -43,7 +51,7 @@ export function StatTile({ label, value, icon }: StatTileProps) {
 
   return (
     <div className="group relative flex items-center gap-4 overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20">
-      <CardGlow variant="subtle" />
+      <CardShapes seed={seedFromLabel(label)} count={3} />
       {icon && (
         <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand transition-transform duration-200 group-hover:scale-105">
           <span className="animate-pulse-ring absolute inset-0 rounded-full bg-brand-soft" aria-hidden="true" />
