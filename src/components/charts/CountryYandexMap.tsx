@@ -66,7 +66,15 @@ export function CountryYandexMap({ data }: CountryYandexMapProps) {
             zoom: 2,
             controls: ["zoomControl"],
           },
-          { suppressMapOpenBlock: true }
+          {
+            suppressMapOpenBlock: true,
+            // Without these, zooming/panning past the world's edge repeats the map
+            // sideways and shows empty gray strips above/below — restrictMapArea
+            // pins panning to the real world extent, minZoom stops "-" before the
+            // whole world no longer fills the view.
+            restrictMapArea: true,
+            minZoom: 2,
+          }
         );
         setMapReady(true);
       })
@@ -128,11 +136,14 @@ export function CountryYandexMap({ data }: CountryYandexMapProps) {
             },
           } as unknown as ymaps.IGeoObjectFeature,
           {
+            // Outline-only: a near-transparent fill keeps the whole country clickable/
+            // hoverable, but visually the real map tiles show through — only the border
+            // (colored by channel count, like the old fill was) marks the country.
             fillColor: highlightColor(match.count, maxCount),
-            fillOpacity: 0.75,
-            strokeColor: "#181818",
-            strokeWidth: 1,
-            strokeOpacity: 0.9,
+            fillOpacity: 0.05,
+            strokeColor: highlightColor(match.count, maxCount),
+            strokeWidth: 3,
+            strokeOpacity: 1,
           }
         );
         map.geoObjects.add(geoObject);

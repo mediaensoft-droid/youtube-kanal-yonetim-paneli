@@ -111,16 +111,18 @@ export function CountryMapChart({ data }: CountryMapChartProps) {
           <g transform={transform.toString()}>
             {paths.map((p) => {
               const match = countByNumericId.get(p.id);
-              const fill = match ? highlightFill(match.count, maxCount) : EMPTY_FILL;
+              // Outline-only: every country keeps the same neutral land fill — a match is
+              // marked by its border color/thickness (by count), not by painting the area.
+              const strokeColor = match ? highlightFill(match.count, maxCount) : STROKE;
               return (
                 <path
                   key={p.id}
                   d={p.d}
-                  fill={fill}
-                  stroke={STROKE}
-                  strokeWidth={0.5}
+                  fill={EMPTY_FILL}
+                  stroke={strokeColor}
+                  strokeWidth={match ? 2 : 0.5}
                   vectorEffect="non-scaling-stroke"
-                  className="transition-[fill] duration-150"
+                  className="transition-[stroke] duration-150"
                   style={match ? { cursor: "pointer" } : undefined}
                   onMouseEnter={(e) => {
                     if (!match) return;
