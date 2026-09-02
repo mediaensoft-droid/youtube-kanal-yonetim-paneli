@@ -79,3 +79,9 @@ export function countByLanguage(channels: Channel[]): CodeDistributionEntry[] {
 export function countByCountry(channels: Channel[]): CodeDistributionEntry[] {
   return countByCode(channels, (c) => c.countries, getCountryName);
 }
+
+// Unlike countByCountry, this never collapses long tails into an "Diğer" bucket — the map
+// needs every individual country code to know which polygon to highlight.
+export function countByCountryFull(channels: Channel[]): CodeDistributionEntry[] {
+  return countByCode(channels, (c) => c.countries, getCountryName, Infinity);
+}

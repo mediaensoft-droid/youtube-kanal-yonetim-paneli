@@ -3,11 +3,11 @@ import { Tv, Layers, Globe2, MapPin } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { listChannels } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
-import { countByCategory, countByLanguage, countByCountry } from "@/lib/stats";
+import { countByCategory, countByLanguage, countByCountryFull } from "@/lib/stats";
 import { StatTile } from "@/components/StatTile";
 import { CategoryDistributionChart } from "@/components/charts/CategoryDistributionChart";
 import { LanguageDistributionChart } from "@/components/charts/LanguageDistributionChart";
-import { CountryDistributionChart } from "@/components/charts/CountryDistributionChart";
+import { CountryMapChart } from "@/components/charts/CountryMapChart";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function DashboardPage() {
 
   const categoryData = countByCategory(channels, categories);
   const languageData = countByLanguage(channels);
-  const countryData = countByCountry(channels);
+  const countryData = countByCountryFull(channels);
 
   return (
     <div className="animate-fade-in-up">
@@ -34,9 +34,7 @@ export default async function DashboardPage() {
         />
         <StatTile
           label="Kullanılan Dil / Ülke"
-          value={`${languageData.filter((d) => d.code !== "OTHER").length} / ${
-            countryData.filter((d) => d.code !== "OTHER").length
-          }`}
+          value={`${languageData.filter((d) => d.code !== "OTHER").length} / ${countryData.length}`}
           icon={<Globe2 className="h-5 w-5" />}
         />
       </div>
@@ -58,7 +56,7 @@ export default async function DashboardPage() {
           <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
             <MapPin className="h-4 w-4" /> Ülkeye Göre Dağılım
           </h2>
-          <CountryDistributionChart data={countryData} />
+          <CountryMapChart data={countryData} />
         </div>
       </div>
     </div>
