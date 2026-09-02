@@ -5,8 +5,17 @@ import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
 import type { Position } from "geojson";
 import worldTopology from "world-atlas/countries-50m.json";
+import { Map as MapIcon, Satellite, Sun, Moon } from "lucide-react";
+import clsx from "clsx";
 import type { CodeDistributionEntry } from "@/lib/stats";
 import { COUNTRY_MAP_IDS } from "@/lib/constants/countryMapIds";
+
+type YandexMapType = "yandex#map" | "yandex#satellite";
+
+// A CSS-filter "dark mode" — Yandex's 2.1 JS API has no native dark tile theme (that's a v3-only
+// feature), so this inverts the tile colors instead. Applied to the map's own wrapper div only,
+// never to the control buttons, so the buttons stay legible in both modes.
+const DARK_MODE_FILTER = "invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9)";
 
 interface CountryYandexMapProps {
   data: CodeDistributionEntry[];
@@ -54,6 +63,8 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
   const mapRef = useRef<ymaps.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [error, setError] = useState<string | null>(() => (YANDEX_API_KEY ? null : "no-key"));
+  const [mapType, setMapType] = useState<YandexMapType>("yandex#map");
+  const [darkMode, setDarkMode] = useState(false);
 
   // Load the script and create the map instance once.
   useEffect(() => {
@@ -114,6 +125,11 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
       mapRef.current = null;
     };
   }, []);
+
+  function changeMapType(type: YandexMapType) {
+    setMapType(type);
+    mapRef.current?.setType(type).catch(() => {});
+  }
 
   // (Re)draw the country overlays whenever the map becomes ready or the data changes.
   useEffect(() => {
@@ -188,5 +204,51 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
     );
   }
 
-  return <div ref={containerRef} className="h-[420px] w-full overflow-hidden rounded-lg" />;
+  return (
+    <div className="relative">
+      <div
+        ref={containerRef}
+        className="h-[420px] w-full overflow-hidden rounded-lg"
+        style={darkMode ? { filter: DARK_MODE_FILTER } : undefined}
+      />
+
+      <div className="absolute left-2 top-2 flex gap-1">
+        <button
+          type="button"
+          onClick={() => changeMapType("yandex#map")}
+          title="Harita görünümü"
+          className={clsx(
+            "flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors duration-150",
+            mapType === "yandex#map"
+              ? "border-brand bg-brand text-white"
+              : "border-line-strong bg-surface-2 text-ink-muted hover:text-ink"
+          )}
+        >
+          <MapIcon className="h-3.5 w-3.5" /> Harita
+        </button>
+        <button
+          type="button"
+          onClick={() => changeMapType("yandex#satellite")}
+          title="Uydu görünümü"
+          className={clsx(
+            "flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition-colors duration-150",
+            mapType === "yandex#satellite"
+              ? "border-brand bg-brand text-white"
+              : "border-line-strong bg-surface-2 text-ink-muted hover:text-ink"
+          )}
+        >
+          <Satellite className="h-3.5 w-3.5" /> Uydu
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setDarkMode((d) => !d)}
+        title={darkMode ? "Açık görünüm" : "Koyu görünüm"}
+        className="absolute left-2 top-11 flex h-7 w-7 items-center justify-center rounded-md border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:text-ink"
+      >
+        {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
 }
