@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { WEEKDAYS, isoWeekday, toDateKey, toYearMonth } from "@/lib/weekdays";
 import { getLanguageName } from "@/lib/constants/languages";
+import { VideoCountsPanel } from "./VideoCountsPanel";
 
 interface CalendarClientProps {
   initialChannels: Channel[];
@@ -71,6 +72,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [patterns, setPatterns] = useState<ChannelMonthPattern[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [videoPanelOpen, setVideoPanelOpen] = useState(false);
   const [panelCategoryFilter, setPanelCategoryFilter] = useState("");
   const [panelConceptFilter, setPanelConceptFilter] = useState("");
   const [panelLanguageFilter, setPanelLanguageFilter] = useState("");
@@ -261,9 +263,14 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
     <div className="animate-fade-in-up">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-ink">Yayın Takvimi</h1>
-        <Button variant="secondary" size="sm" onClick={() => setPanelOpen((o) => !o)}>
-          Kanal Yayın Günleri
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setPanelOpen((o) => !o)}>
+            Kanal Yayın Günleri
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setVideoPanelOpen((o) => !o)}>
+            Video Sayıları
+          </Button>
+        </div>
       </div>
 
       {panelOpen && (
@@ -358,6 +365,10 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
             ))}
           </div>
         </div>
+      )}
+
+      {videoPanelOpen && (
+        <VideoCountsPanel channels={channels} categories={categories} concepts={concepts} />
       )}
 
       <div className="mb-4 flex items-center justify-between">

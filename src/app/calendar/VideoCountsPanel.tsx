@@ -11,13 +11,13 @@ import { Button } from "@/components/ui/Button";
 import { getLanguageName } from "@/lib/constants/languages";
 import { yearMonthRange } from "@/lib/weekdays";
 
-interface VideoCountsClientProps {
+interface VideoCountsPanelProps {
   channels: Channel[];
   categories: Category[];
   concepts: Concept[];
 }
 
-export function VideoCountsClient({ channels, categories, concepts }: VideoCountsClientProps) {
+export function VideoCountsPanel({ channels, categories, concepts }: VideoCountsPanelProps) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [conceptFilter, setConceptFilter] = useState("");
@@ -88,12 +88,12 @@ export function VideoCountsClient({ channels, categories, concepts }: VideoCount
   const totalCount = useMemo(() => rows.reduce((sum, r) => sum + r.count, 0), [rows]);
 
   return (
-    <div className="animate-fade-in-up">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-ink">Video Sayıları</h1>
-      </div>
+    <div className="animate-scale-in mb-6 origin-top rounded-lg border border-line bg-surface p-4">
+      <p className="mb-3 text-sm text-ink-muted">
+        Her kanalın takvimde &quot;Yayınlandı&quot; işaretlenen video sayısını gösterir.
+      </p>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6">
         <div className="relative lg:col-span-2">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
           <Input
@@ -149,7 +149,7 @@ export function VideoCountsClient({ channels, categories, concepts }: VideoCount
       </div>
 
       {(startMonth || endMonth) && (
-        <div className="mb-4 -mt-1">
+        <div className="mb-3 -mt-1">
           <Button
             variant="ghost"
             size="sm"
@@ -163,20 +163,16 @@ export function VideoCountsClient({ channels, categories, concepts }: VideoCount
         </div>
       )}
 
-      <p className="mb-4 text-sm text-ink-faint">
+      <p className="mb-3 text-sm text-ink-faint">
         {rows.length} kanal · toplam {totalCount} video yayınlandı
       </p>
 
       {channels.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line-strong py-16 text-center text-ink-muted">
-          Henüz kanal eklenmedi.
-        </div>
+        <p className="text-sm text-ink-faint">Henüz kanal eklenmedi.</p>
       ) : rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-line-strong py-16 text-center text-ink-muted">
-          Filtrelerle eşleşen kanal bulunamadı.
-        </div>
+        <p className="text-sm text-ink-faint">Filtrelerle eşleşen kanal bulunamadı.</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-line">
+        <div className="overflow-x-auto overflow-hidden rounded-lg border border-line">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line bg-surface-2 text-left text-xs font-medium text-ink-muted">
@@ -191,7 +187,7 @@ export function VideoCountsClient({ channels, categories, concepts }: VideoCount
                 const category = channel.categoryId ? categoryById.get(channel.categoryId) : undefined;
                 const concept = channel.conceptId ? conceptById.get(channel.conceptId) : undefined;
                 return (
-                  <tr key={channel.id} className="border-b border-line bg-surface last:border-b-0">
+                  <tr key={channel.id} className="border-b border-line bg-surface-2/40 last:border-b-0">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
