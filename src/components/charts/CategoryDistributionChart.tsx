@@ -8,6 +8,47 @@ interface CategoryDistributionChartProps {
   data: CategoryDistributionEntry[];
 }
 
+const RADIAN = Math.PI / 180;
+
+interface PercentLabelProps {
+  cx?: number;
+  cy?: number;
+  midAngle?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  percent?: number;
+}
+
+// Placed halfway through the donut's ring (rather than outside with leader lines) so the
+// percentage sits on top of its own slice's color — compact, and unambiguous which slice it
+// belongs to even once several slices are close in size.
+function renderPercentLabel({
+  cx = 0,
+  cy = 0,
+  midAngle = 0,
+  innerRadius = 0,
+  outerRadius = 0,
+  percent = 0,
+}: PercentLabelProps) {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#ffffff"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize={12}
+      fontWeight={700}
+      style={{ textShadow: "0 1px 3px rgba(0,0,0,0.7)" }}
+    >
+      {`${Math.round(percent * 100)}%`}
+    </text>
+  );
+}
+
 export function CategoryDistributionChart({ data }: CategoryDistributionChartProps) {
   if (data.length === 0) {
     return <EmptyState />;
@@ -24,6 +65,8 @@ export function CategoryDistributionChart({ data }: CategoryDistributionChartPro
           outerRadius={100}
           paddingAngle={data.length > 1 ? 2 : 0}
           isAnimationActive={false}
+          label={renderPercentLabel}
+          labelLine={false}
         >
           {data.map((entry) => (
             <Cell key={entry.name} fill={entry.color} stroke="#181818" strokeWidth={2} />

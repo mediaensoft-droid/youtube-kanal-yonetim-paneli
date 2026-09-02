@@ -128,6 +128,21 @@ input[type="color"] {
 .animate-drift-c { animation: drift-c 25s ease-in-out infinite; }
 .animate-float-icon { animation: float-icon 16s ease-in-out infinite; }
 
+/* A soft radar-style ping behind Dashboard stat-tile icons — loops slowly so it reads as "live
+   data" ambiance rather than a distracting attention-grabber. */
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.5; }
+  70%, 100% { transform: scale(1.6); opacity: 0; }
+}
+.animate-pulse-ring { animation: pulse-ring 2.4s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; }
+
+/* A gentle continuous scale "breathe" for Dashboard section-header icons. */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+.animate-breathe { animation: breathe 3.2s ease-in-out infinite; }
+
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -157,7 +172,9 @@ input[type="color"] {
   .animate-drift-b,
   .animate-drift-c,
   .animate-float-icon,
-  .animated-gradient {
+  .animated-gradient,
+  .animate-pulse-ring,
+  .animate-breathe {
     animation: none;
   }
 }

@@ -66,19 +66,21 @@ export function WorldClocks({ data }: WorldClocksProps) {
         return (
           <div
             key={entry.code}
-            className="flex items-center gap-2.5 rounded-md border border-line bg-surface-2 px-3 py-2.5"
+            className="group flex items-center gap-2.5 rounded-md border border-line bg-surface-2 px-3 py-2.5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md"
           >
-            <span className="text-lg leading-none">{countryFlagEmoji(entry.code)}</span>
             <div className="min-w-0">
-              <p className="truncate text-xs text-ink-muted" title={entry.name}>
-                {entry.name}
-              </p>
-              <p className="flex items-center gap-1 text-sm font-semibold text-ink">
-                <Clock className="h-3 w-3 text-ink-faint" />
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <span className="text-lg leading-none transition-transform duration-200 group-hover:scale-110">
+                  {countryFlagEmoji(entry.code)}
+                </span>
                 {formatClock(tz, now)}
                 {dayOffset && (
                   <span className="text-[10px] font-normal text-ink-faint">{dayOffset}</span>
                 )}
+              </p>
+              <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-ink-muted" title={entry.name}>
+                <Clock className="h-3 w-3 shrink-0 text-ink-faint" />
+                {entry.name}
               </p>
             </div>
           </div>
