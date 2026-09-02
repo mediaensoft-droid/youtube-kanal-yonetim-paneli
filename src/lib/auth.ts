@@ -1,7 +1,7 @@
 import "server-only";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { getOrCreateUserByEmail } from "@/lib/db/users";
+import { getOrCreateUserByEmail, getUserById } from "@/lib/db/users";
 import { ensureTrialSubscription } from "@/lib/db/subscriptions";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -28,8 +28,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.userId) {
-        session.user.id = String(token.userId);
+      const userId = Number(token.userId);
+      if (session.user && userId) {
+        session.user.id = String(userId);
+        // The DB row (editable on /profile) is the source of truth for name/image, not
+        // whatever Google's token happened to carry at sign-in time.
+        const dbUser = await getUserById(userId);
+        if (dbUser) {
+          session.user.name = dbUser.name;
+          session.user.image = dbUser.image;
+        }
       }
       return session;
     },

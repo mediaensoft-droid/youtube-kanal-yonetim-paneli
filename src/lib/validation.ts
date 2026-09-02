@@ -60,6 +60,13 @@ export const upsertChannelMonthPatternSchema = z.object({
   publishDays: z.array(z.number().int().min(1).max(7)),
 });
 
+export const updateProfileSchema = z.object({
+  name: z.string().trim().min(1, "İsim boş olamaz").max(100, "İsim çok uzun").optional(),
+  // Only an explicit null is accepted (clears the photo) — setting an actual URL only happens
+  // through the dedicated /api/profile/avatar upload endpoint.
+  image: z.literal(null).optional(),
+});
+
 export const billingCheckoutSchema = z.object({
   plan: z.enum(["standart", "pro", "ultra"]),
   name: z.string().trim().min(1, "Ad gerekli"),

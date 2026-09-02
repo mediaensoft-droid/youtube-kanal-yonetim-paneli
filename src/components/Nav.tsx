@@ -16,6 +16,7 @@ import {
   CreditCard,
   Search,
   CalendarDays,
+  UserRound,
 } from "lucide-react";
 
 const links = [
@@ -73,18 +74,24 @@ export function Nav() {
 
         {session?.user && (
           <div className="hidden items-center gap-2 border-l border-line pl-3 ml-1 sm:flex">
-            {session.user.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={session.user.image}
-                alt={session.user.name ?? session.user.email ?? "Kullanıcı"}
-                className="h-7 w-7 rounded-full"
-              />
-            ) : (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-hover text-xs text-ink-muted">
-                {(session.user.name ?? session.user.email ?? "?").charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Link
+              href="/profile"
+              title="Profil"
+              className="rounded-full transition-opacity duration-150 hover:opacity-80"
+            >
+              {session.user.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={session.user.image}
+                  alt={session.user.name ?? session.user.email ?? "Kullanıcı"}
+                  className="h-7 w-7 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-hover text-xs text-ink-muted">
+                  {(session.user.name ?? session.user.email ?? "?").charAt(0).toUpperCase()}
+                </div>
+              )}
+            </Link>
             <button
               type="button"
               onClick={() => signOut({ redirectTo: "/sign-in" })}
@@ -126,14 +133,29 @@ export function Nav() {
             );
           })}
           {session?.user && (
-            <button
-              type="button"
-              onClick={() => signOut({ redirectTo: "/sign-in" })}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-            >
-              <LogOut className="h-4 w-4" />
-              Çıkış yap
-            </button>
+            <>
+              <Link
+                href="/profile"
+                onClick={() => setMenuOpen(false)}
+                className={clsx(
+                  "flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                  pathname.startsWith("/profile")
+                    ? "bg-brand text-white"
+                    : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                )}
+              >
+                <UserRound className="h-4 w-4" />
+                Profil
+              </Link>
+              <button
+                type="button"
+                onClick={() => signOut({ redirectTo: "/sign-in" })}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+              >
+                <LogOut className="h-4 w-4" />
+                Çıkış yap
+              </button>
+            </>
           )}
         </div>
       )}
