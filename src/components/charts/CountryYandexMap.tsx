@@ -110,6 +110,11 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
             minZoom: 2,
           }
         );
+        // Yandex sizes the map from the container's dimensions at the instant of
+        // construction. If layout hasn't fully settled yet (e.g. mid CSS transition),
+        // it can misjudge the container as tiny and compute an absurd zoom to "fit" —
+        // this forces a resync once the real size is known.
+        mapRef.current.container.fitToViewport();
         setMapReady(true);
       })
       .catch(() => {
@@ -130,6 +135,18 @@ export function CountryYandexMap({ data, onInvalidKey }: CountryYandexMapProps) 
       mapRef.current?.destroy();
       mapRef.current = null;
     };
+  }, []);
+
+  // Re-sync the map if the container's size changes after creation (e.g. a layout
+  // shift while the dashboard's entrance animations are still settling) — otherwise
+  // the zoom Yandex computed at construction time can stay wrong indefinitely.
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      mapRef.current?.container.fitToViewport();
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
   }, []);
 
   function changeMapType(type: YandexMapType) {
