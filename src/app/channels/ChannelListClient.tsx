@@ -29,9 +29,12 @@ const VIEW_MODES: { key: ViewMode; label: string; icon: typeof LayoutGrid }[] = 
   { key: "list", label: "Liste", icon: List },
 ];
 
+// Both need their own mobile (unprefixed) column count too — without it, "small" and "large"
+// rendered identically (a single full-width column) below the sm breakpoint, since only the
+// sm/lg/xl steps differed.
 const GRID_CLASSES: Record<"large" | "small", string> = {
-  large: "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-  small: "sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6",
+  large: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+  small: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6",
 };
 
 export function ChannelListClient({ initialChannels, categories, concepts }: ChannelListClientProps) {
@@ -195,7 +198,7 @@ export function ChannelListClient({ initialChannels, categories, concepts }: Cha
           ))}
         </div>
       ) : (
-        <div className={clsx("stagger grid grid-cols-1 gap-4", GRID_CLASSES[viewMode])}>
+        <div className={clsx("stagger grid gap-4", GRID_CLASSES[viewMode])}>
           {filteredChannels.map((channel) => (
             <ChannelCard
               key={channel.id}
