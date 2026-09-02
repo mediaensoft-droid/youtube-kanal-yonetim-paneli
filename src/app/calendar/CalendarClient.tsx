@@ -4,15 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Plus, RotateCcw } from "lucide-react";
-import type { Channel, ScheduleEntry, ScheduleStatus } from "@/types";
+import type { Category, Channel, Concept, ScheduleEntry, ScheduleStatus } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { WEEKDAYS, isoWeekday, toDateKey } from "@/lib/weekdays";
+import { getLanguageName } from "@/lib/constants/languages";
 
 interface CalendarClientProps {
   initialChannels: Channel[];
+  categories: Category[];
+  concepts: Concept[];
 }
 
 const MONTH_LABELS = [
@@ -59,7 +62,7 @@ function monthRange(year: number, month: number) {
   return { first, last };
 }
 
-export function CalendarClient({ initialChannels }: CalendarClientProps) {
+export function CalendarClient({ initialChannels, categories, concepts }: CalendarClientProps) {
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
@@ -67,9 +70,27 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
   });
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panelCategoryFilter, setPanelCategoryFilter] = useState("");
+  const [panelConceptFilter, setPanelConceptFilter] = useState("");
+  const [panelLanguageFilter, setPanelLanguageFilter] = useState("");
   const [activeSlot, setActiveSlot] = useState<{ date: string; channelId: number | null } | null>(
     null
   );
+
+  const panelAvailableLanguages = useMemo(() => {
+    const codes = new Set<string>();
+    channels.forEach((c) => c.languages.forEach((l) => codes.add(l)));
+    return [...codes].sort();
+  }, [channels]);
+
+  const panelFilteredChannels = useMemo(() => {
+    return channels.filter((c) => {
+      if (panelCategoryFilter && String(c.categoryId ?? "") !== panelCategoryFilter) return false;
+      if (panelConceptFilter && String(c.conceptId ?? "") !== panelConceptFilter) return false;
+      if (panelLanguageFilter && !c.languages.includes(panelLanguageFilter)) return false;
+      return true;
+    });
+  }, [channels, panelCategoryFilter, panelConceptFilter, panelLanguageFilter]);
 
   const { first, last } = useMemo(() => monthRange(cursor.year, cursor.month), [cursor]);
 
@@ -210,8 +231,48 @@ export function CalendarClient({ initialChannels }: CalendarClientProps) {
           {channels.length === 0 && (
             <p className="text-sm text-ink-faint">Henüz kanal eklenmedi.</p>
           )}
+          {channels.length > 0 && (
+            <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <Select
+                value={panelCategoryFilter}
+                onChange={(e) => setPanelCategoryFilter(e.target.value)}
+              >
+                <option value="">Tüm kategoriler</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={panelConceptFilter}
+                onChange={(e) => setPanelConceptFilter(e.target.value)}
+              >
+                <option value="">Tüm konseptler</option>
+                {concepts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={panelLanguageFilter}
+                onChange={(e) => setPanelLanguageFilter(e.target.value)}
+              >
+                <option value="">Tüm diller</option>
+                {panelAvailableLanguages.map((code) => (
+                  <option key={code} value={code}>
+                    {getLanguageName(code)}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+          {channels.length > 0 && panelFilteredChannels.length === 0 && (
+            <p className="text-sm text-ink-faint">Filtrelerle eşleşen kanal bulunamadı.</p>
+          )}
           <div className="space-y-3">
-            {channels.map((channel) => (
+            {panelFilteredChannels.map((channel) => (
               <div
                 key={channel.id}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-surface-2 p-3"
