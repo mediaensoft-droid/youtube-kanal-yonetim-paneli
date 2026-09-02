@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Plus, RotateCcw } from "lucide-react";
@@ -520,34 +521,36 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
         ))}
       </div>
 
-      {contextMenu && (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setContextMenu(null)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setContextMenu(null);
-            }}
-          />
-          <div
-            className="animate-scale-in fixed z-50 w-40 origin-top-left rounded-md border border-line-strong bg-surface-2 p-1 shadow-2xl shadow-black/50"
-            style={{ left: contextMenu.x, top: contextMenu.y }}
-          >
-            {(Object.keys(STATUS_META) as ScheduleStatus[]).map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => quickSetStatus(contextMenu.channelId, contextMenu.date, s)}
-                className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-              >
-                <span className={clsx("h-2 w-2 shrink-0 rounded-full", STATUS_META[s].dot)} />
-                {STATUS_META[s].label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      {contextMenu &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setContextMenu(null)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu(null);
+              }}
+            />
+            <div
+              className="animate-scale-in fixed z-50 w-40 origin-top-left rounded-md border border-line-strong bg-surface-2 p-1 shadow-2xl shadow-black/50"
+              style={{ left: contextMenu.x, top: contextMenu.y }}
+            >
+              {(Object.keys(STATUS_META) as ScheduleStatus[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => quickSetStatus(contextMenu.channelId, contextMenu.date, s)}
+                  className="flex w-full items-center gap-2 rounded px-2.5 py-1.5 text-left text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                >
+                  <span className={clsx("h-2 w-2 shrink-0 rounded-full", STATUS_META[s].dot)} />
+                  {STATUS_META[s].label}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body
+        )}
 
       {activeSlot && (
         <EntryModal

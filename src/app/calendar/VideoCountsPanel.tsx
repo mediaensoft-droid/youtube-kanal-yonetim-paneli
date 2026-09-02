@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search, Video } from "lucide-react";
 import type { Category, Channel, Concept } from "@/types";
 import { CategoryBadge } from "@/components/CategoryBadge";
@@ -155,10 +156,14 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+                      <Link
+                        href={`/channels/${channel.id}#son-videolar`}
+                        title="Son videoları gör"
+                        className="inline-flex items-center gap-1.5 font-semibold text-ink transition-colors duration-150 hover:text-brand"
+                      >
                         <Video className="h-3.5 w-3.5 text-ink-faint" />
                         {formatCompactNumber(channel.videoCount)}
-                      </span>
+                      </Link>
                     </td>
                   </tr>
                 );

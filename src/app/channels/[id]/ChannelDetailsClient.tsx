@@ -76,6 +76,15 @@ export function ChannelDetailsClient({ channelId }: ChannelDetailsClientProps) {
   }
 
   useEffect(() => {
+    // The "Son Videolar" section this hash points to only exists once `state` is "ready" —
+    // it's rendered from a fetch below, not present at initial page load — so the browser's
+    // native fragment-scroll (which only fires once, during load) misses it. Do it manually here.
+    if (state.status === "ready" && window.location.hash === "#son-videolar") {
+      document.getElementById("son-videolar")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [state]);
+
+  useEffect(() => {
     // load() only calls setState after its internal `await`, never synchronously —
     // this is the standard fetch-on-mount pattern, not the cascading-render case the rule guards against.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -150,7 +159,7 @@ export function ChannelDetailsClient({ channelId }: ChannelDetailsClientProps) {
         )}
       </div>
 
-      <div>
+      <div id="son-videolar" className="scroll-mt-20">
         <h2 className="mb-3 text-sm font-semibold text-ink-muted">Son Videolar</h2>
         {data.recentVideos.length === 0 ? (
           <p className="text-sm text-ink-faint">Video bulunamadı.</p>
