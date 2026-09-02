@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Tv, Layers, Globe2, MapPin } from "lucide-react";
+import { Tv, Layers, Globe2, MapPin, Clock } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { listChannels } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
@@ -8,6 +8,7 @@ import { StatTile } from "@/components/StatTile";
 import { CategoryDistributionChart } from "@/components/charts/CategoryDistributionChart";
 import { LanguageDistributionChart } from "@/components/charts/LanguageDistributionChart";
 import { CountryMapSection } from "@/components/charts/CountryMapSection";
+import { WorldClocks } from "@/components/charts/WorldClocks";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,13 @@ export default async function DashboardPage() {
             <MapPin className="h-4 w-4" /> Ülkeye Göre Dağılım
           </h2>
           <CountryMapSection data={countryData} />
+        </div>
+
+        <div className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-colors duration-200 hover:border-line-strong lg:col-span-2">
+          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
+            <Clock className="h-4 w-4" /> Ülke Saatleri
+          </h2>
+          <WorldClocks data={countryData} />
         </div>
       </div>
     </div>
