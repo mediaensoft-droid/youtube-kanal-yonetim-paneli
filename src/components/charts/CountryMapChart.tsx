@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
+import { select } from "d3-selection";
+import "d3-transition"; // side-effect import: adds .transition() to d3-selection's Selection type
+import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent, type ZoomTransform } from "d3-zoom";
 import worldTopology from "world-atlas/countries-50m.json";
+import { Plus, Minus, RotateCcw } from "lucide-react";
 import type { CodeDistributionEntry } from "@/lib/stats";
 import { COUNTRY_MAP_IDS } from "@/lib/constants/countryMapIds";
 import { countryFlagEmoji } from "@/lib/constants/countries";
@@ -27,6 +31,9 @@ function highlightFill(count: number, max: number): string {
 }
 
 export function CountryMapChart({ data }: CountryMapChartProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const zoomBehaviorRef = useRef<ReturnType<typeof d3zoom<SVGSVGElement, unknown>> | null>(null);
+  const [transform, setTransform] = useState<ZoomTransform>(zoomIdentity);
   const [hover, setHover] = useState<{ name: string; count: number; x: number; y: number } | null>(
     null
   );
@@ -54,6 +61,33 @@ export function CountryMapChart({ data }: CountryMapChartProps) {
     }));
   }, []);
 
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const zoomBehavior = d3zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 8])
+      .translateExtent([
+        [0, 0],
+        [WIDTH, HEIGHT],
+      ])
+      .on("zoom", (event: D3ZoomEvent<SVGSVGElement, unknown>) => setTransform(event.transform));
+    zoomBehaviorRef.current = zoomBehavior;
+    select(svgEl).call(zoomBehavior);
+    return () => {
+      select(svgEl).on(".zoom", null);
+    };
+  }, []);
+
+  function zoomBy(factor: number) {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    zoomBehaviorRef.current.scaleBy(select(svgRef.current).transition().duration(200), factor);
+  }
+
+  function resetZoom() {
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
+    zoomBehaviorRef.current.transform(select(svgRef.current).transition().duration(200), zoomIdentity);
+  }
+
   if (data.length === 0) {
     return (
       <div className="flex h-[280px] items-center justify-center text-sm text-ink-faint">
@@ -68,50 +102,81 @@ export function CountryMapChart({ data }: CountryMapChartProps) {
     <div>
       <div className="relative">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="h-auto w-full"
+          className="h-auto w-full cursor-grab touch-none active:cursor-grabbing"
           role="img"
           aria-label="Ülkeye göre kanal dağılımı haritası"
         >
-          {paths.map((p) => {
-            const match = countByNumericId.get(p.id);
-            const fill = match ? highlightFill(match.count, maxCount) : EMPTY_FILL;
-            return (
-              <path
-                key={p.id}
-                d={p.d}
-                fill={fill}
-                stroke={STROKE}
-                strokeWidth={0.5}
-                className="transition-[fill] duration-150"
-                style={match ? { cursor: "pointer" } : undefined}
-                onMouseEnter={(e) => {
-                  if (!match) return;
-                  const rect = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
-                  setHover({
-                    name: match.name,
-                    count: match.count,
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top,
-                  });
-                }}
-                onMouseMove={(e) => {
-                  if (!match) return;
-                  const rect = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
-                  setHover({
-                    name: match.name,
-                    count: match.count,
-                    x: e.clientX - rect.left,
-                    y: e.clientY - rect.top,
-                  });
-                }}
-                onMouseLeave={() => setHover(null)}
-              >
-                {match && <title>{`${match.name}: ${match.count} kanal`}</title>}
-              </path>
-            );
-          })}
+          <g transform={transform.toString()}>
+            {paths.map((p) => {
+              const match = countByNumericId.get(p.id);
+              const fill = match ? highlightFill(match.count, maxCount) : EMPTY_FILL;
+              return (
+                <path
+                  key={p.id}
+                  d={p.d}
+                  fill={fill}
+                  stroke={STROKE}
+                  strokeWidth={0.5}
+                  vectorEffect="non-scaling-stroke"
+                  className="transition-[fill] duration-150"
+                  style={match ? { cursor: "pointer" } : undefined}
+                  onMouseEnter={(e) => {
+                    if (!match) return;
+                    const rect = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+                    setHover({
+                      name: match.name,
+                      count: match.count,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    });
+                  }}
+                  onMouseMove={(e) => {
+                    if (!match) return;
+                    const rect = e.currentTarget.ownerSVGElement!.getBoundingClientRect();
+                    setHover({
+                      name: match.name,
+                      count: match.count,
+                      x: e.clientX - rect.left,
+                      y: e.clientY - rect.top,
+                    });
+                  }}
+                  onMouseLeave={() => setHover(null)}
+                >
+                  {match && <title>{`${match.name}: ${match.count} kanal`}</title>}
+                </path>
+              );
+            })}
+          </g>
         </svg>
+
+        <div className="absolute right-2 top-2 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => zoomBy(1.5)}
+            aria-label="Yakınlaştır"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => zoomBy(1 / 1.5)}
+            aria-label="Uzaklaştır"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={resetZoom}
+            aria-label="Yakınlaştırmayı sıfırla"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-line-strong bg-surface-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
         {hover && (
           <div

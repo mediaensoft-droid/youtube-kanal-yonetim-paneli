@@ -8,6 +8,7 @@ import { StatTile } from "@/components/StatTile";
 import { CategoryDistributionChart } from "@/components/charts/CategoryDistributionChart";
 import { LanguageDistributionChart } from "@/components/charts/LanguageDistributionChart";
 import { CountryMapChart } from "@/components/charts/CountryMapChart";
+import { CountryYandexMap } from "@/components/charts/CountryYandexMap";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,11 @@ export default async function DashboardPage() {
           <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-ink-muted">
             <MapPin className="h-4 w-4" /> Ülkeye Göre Dağılım
           </h2>
-          <CountryMapChart data={countryData} />
+          {process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY ? (
+            <CountryYandexMap data={countryData} />
+          ) : (
+            <CountryMapChart data={countryData} />
+          )}
         </div>
       </div>
     </div>
