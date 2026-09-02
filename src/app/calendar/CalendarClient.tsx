@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Plus, RotateCcw } from "lucide-react";
-import type { Category, Channel, Concept, ScheduleEntry, ScheduleStatus } from "@/types";
+import type { Category, Channel, ChannelMonthPattern, Concept, ScheduleEntry, ScheduleStatus } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { WEEKDAYS, isoWeekday, toDateKey } from "@/lib/weekdays";
+import { WEEKDAYS, isoWeekday, toDateKey, toYearMonth } from "@/lib/weekdays";
 import { getLanguageName } from "@/lib/constants/languages";
 
 interface CalendarClientProps {
@@ -63,12 +63,13 @@ function monthRange(year: number, month: number) {
 }
 
 export function CalendarClient({ initialChannels, categories, concepts }: CalendarClientProps) {
-  const [channels, setChannels] = useState<Channel[]>(initialChannels);
+  const [channels] = useState<Channel[]>(initialChannels);
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
+  const [patterns, setPatterns] = useState<ChannelMonthPattern[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelCategoryFilter, setPanelCategoryFilter] = useState("");
   const [panelConceptFilter, setPanelConceptFilter] = useState("");
@@ -135,14 +136,46 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
     return days;
   }, [first, last]);
 
+  const currentYearMonth = useMemo(
+    () => `${cursor.year}-${String(cursor.month + 1).padStart(2, "0")}`,
+    [cursor]
+  );
+
+  const loadPatterns = useCallback(async () => {
+    try {
+      const months = gridDays.map((d) => toYearMonth(d));
+      const start = months.reduce((a, b) => (b < a ? b : a));
+      const end = months.reduce((a, b) => (b > a ? b : a));
+      const res = await fetch(`/api/channel-month-patterns?start=${start}&end=${end}`);
+      if (!res.ok) throw new Error("Yayın günleri yüklenemedi");
+      const data: ChannelMonthPattern[] = await res.json();
+      setPatterns(data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Yayın günleri yüklenemedi");
+    }
+  }, [gridDays]);
+
+  useEffect(() => {
+    // Same fetch-on-mount shape as loadEntries above — see the eslint-disable note there.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadPatterns();
+  }, [loadPatterns]);
+
+  function effectivePublishDays(channel: Channel, yearMonth: string): number[] {
+    const override = patterns.find((p) => p.channelId === channel.id && p.yearMonth === yearMonth);
+    return override ? override.publishDays : channel.publishDays;
+  }
+
+  function isInPattern(channel: Channel, date: Date): boolean {
+    return effectivePublishDays(channel, toYearMonth(date)).includes(isoWeekday(date));
+  }
+
   function slotsForDate(date: Date): Slot[] {
     const key = toDateKey(date);
-    const iso = isoWeekday(date);
     const slots: Slot[] = [];
     for (const channel of channels) {
       const entry = entryMap.get(`${channel.id}|${key}`) ?? null;
-      const inPattern = channel.publishDays.includes(iso);
-      if (inPattern || entry) {
+      if (isInPattern(channel, date) || entry) {
         slots.push({ channel, entry });
       }
     }
@@ -150,20 +183,31 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   }
 
   function toggleChannelDay(channel: Channel, iso: number) {
-    const next = channel.publishDays.includes(iso)
-      ? channel.publishDays.filter((d) => d !== iso)
-      : [...channel.publishDays, iso].sort((a, b) => a - b);
+    const base = effectivePublishDays(channel, currentYearMonth);
+    const next = base.includes(iso) ? base.filter((d) => d !== iso) : [...base, iso].sort((a, b) => a - b);
 
-    setChannels((prev) => prev.map((c) => (c.id === channel.id ? { ...c, publishDays: next } : c)));
+    setPatterns((prev) => [
+      ...prev.filter((p) => !(p.channelId === channel.id && p.yearMonth === currentYearMonth)),
+      { id: -1, channelId: channel.id, yearMonth: currentYearMonth, publishDays: next, createdAt: "", updatedAt: "" },
+    ]);
 
-    fetch(`/api/channels/${channel.id}`, {
-      method: "PATCH",
+    fetch("/api/channel-month-patterns", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publishDays: next }),
-    }).catch(() => {
-      toast.error("Kaydedilemedi");
-      setChannels((prev) => prev.map((c) => (c.id === channel.id ? channel : c)));
-    });
+      body: JSON.stringify({ channelId: channel.id, yearMonth: currentYearMonth, publishDays: next }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Kaydedilemedi");
+        const data: ChannelMonthPattern = await res.json();
+        setPatterns((prev) => [
+          ...prev.filter((p) => !(p.channelId === channel.id && p.yearMonth === currentYearMonth)),
+          data,
+        ]);
+      })
+      .catch(() => {
+        toast.error("Kaydedilemedi");
+        loadPatterns();
+      });
   }
 
   function goToMonth(delta: number) {
@@ -226,7 +270,11 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
         <div className="animate-scale-in mb-6 origin-top rounded-lg border border-line bg-surface p-4">
           <p className="mb-3 text-sm text-ink-muted">
             Her kanalın haftalık olarak hangi günler video yayınlayacağını belirleyin. Takvimde o
-            kanal o gün otomatik olarak &quot;planlandı&quot; gösterilir.
+            kanal o gün otomatik olarak &quot;planlandı&quot; gösterilir. Buradaki seçim yalnızca{" "}
+            <strong className="text-ink">
+              {MONTH_LABELS[cursor.month]} {cursor.year}
+            </strong>{" "}
+            ayı için geçerlidir — diğer aylar etkilenmez.
           </p>
           {channels.length === 0 && (
             <p className="text-sm text-ink-faint">Henüz kanal eklenmedi.</p>
@@ -288,7 +336,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                 </span>
                 <div className="flex flex-wrap gap-1">
                   {WEEKDAYS.map((day) => {
-                    const active = channel.publishDays.includes(day.iso);
+                    const active = effectivePublishDays(channel, currentYearMonth).includes(day.iso);
                     return (
                       <button
                         key={day.iso}
@@ -420,6 +468,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
           channels={channels}
           preselectedChannelId={activeSlot.channelId}
           entries={entries}
+          isInPattern={isInPattern}
           onClose={() => setActiveSlot(null)}
           onSave={saveEntry}
           onDelete={removeEntry}
@@ -434,6 +483,7 @@ interface EntryModalProps {
   channels: Channel[];
   preselectedChannelId: number | null;
   entries: ScheduleEntry[];
+  isInPattern: (channel: Channel, date: Date) => boolean;
   onClose: () => void;
   onSave: (input: {
     channelId: number;
@@ -450,6 +500,7 @@ function EntryModal({
   channels,
   preselectedChannelId,
   entries,
+  isInPattern,
   onClose,
   onSave,
   onDelete,
@@ -463,7 +514,7 @@ function EntryModal({
   );
 
   const channel = channels.find((c) => c.id === channelId);
-  const inPattern = channel ? channel.publishDays.includes(isoWeekday(new Date(`${date}T00:00:00`))) : false;
+  const inPattern = channel ? isInPattern(channel, new Date(`${date}T00:00:00`)) : false;
 
   return (
     <div

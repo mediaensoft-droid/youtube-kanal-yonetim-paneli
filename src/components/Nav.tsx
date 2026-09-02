@@ -16,6 +16,7 @@ import {
   CreditCard,
   Search,
   CalendarDays,
+  Video,
 } from "lucide-react";
 
 const links = [
@@ -24,6 +25,7 @@ const links = [
   { href: "/categories", label: "Kategoriler", icon: Layers },
   { href: "/concepts", label: "Konseptler", icon: Lightbulb },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
+  { href: "/videos", label: "Video Sayıları", icon: Video },
   { href: "/analysis", label: "Analiz", icon: Search },
   { href: "/billing", label: "Üyelik", icon: CreditCard },
 ];

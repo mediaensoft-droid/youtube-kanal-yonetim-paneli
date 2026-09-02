@@ -183,6 +183,26 @@ async function bootstrapSchema(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_schedule_entries_userId_date ON schedule_entries(userId, date)`
   );
 
+  // Per-month override of a channel's weekly publish-day pattern. Absent a row here for a given
+  // (channel, month), the calendar falls back to the channel's global `publishDays` template —
+  // this table only stores months the user has explicitly edited, so a day toggled while viewing
+  // one month never silently changes any other month.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS channel_month_patterns (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      channelId   INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+      yearMonth   TEXT NOT NULL,
+      publishDays TEXT NOT NULL DEFAULT '[]',
+      createdAt   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      UNIQUE(channelId, yearMonth)
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_channel_month_patterns_userId_yearMonth ON channel_month_patterns(userId, yearMonth)`
+  );
+
   const channelsInfo = await db.execute(`PRAGMA table_info(channels)`);
   const categoriesInfo = await db.execute(`PRAGMA table_info(categories)`);
   const conceptsInfo = await db.execute(`PRAGMA table_info(concepts)`);

@@ -49,6 +49,12 @@ export const upsertScheduleEntrySchema = z.object({
   notes: z.string().trim().nullable().optional(),
 });
 
+export const upsertChannelMonthPatternSchema = z.object({
+  channelId: z.number().int(),
+  yearMonth: z.string().regex(/^\d{4}-\d{2}$/, "Geçerli bir ay girin (YYYY-AA)"),
+  publishDays: z.array(z.number().int().min(1).max(7)),
+});
+
 export const billingCheckoutSchema = z.object({
   plan: z.enum(["standart", "pro", "ultra"]),
   name: z.string().trim().min(1, "Ad gerekli"),

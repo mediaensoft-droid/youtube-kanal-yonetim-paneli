@@ -118,3 +118,23 @@ export interface UpsertScheduleEntryInput {
   title?: string | null;
   notes?: string | null;
 }
+
+export interface ChannelMonthPattern {
+  id: number;
+  channelId: number;
+  yearMonth: string; // "YYYY-MM"
+  publishDays: number[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertChannelMonthPatternInput {
+  channelId: number;
+  yearMonth: string;
+  publishDays: number[];
+}
+
+export interface ChannelPublishCount {
+  channelId: number;
+  count: number;
+}

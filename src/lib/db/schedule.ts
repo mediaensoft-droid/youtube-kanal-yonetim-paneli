@@ -1,6 +1,6 @@
 import "server-only";
 import { all, get, run } from "@/lib/db";
-import type { ScheduleEntry, ScheduleStatus, UpsertScheduleEntryInput } from "@/types";
+import type { ChannelPublishCount, ScheduleEntry, ScheduleStatus, UpsertScheduleEntryInput } from "@/types";
 
 interface ScheduleEntryRow {
   id: number;
@@ -87,4 +87,27 @@ export async function upsertScheduleEntry(
 
 export async function deleteScheduleEntry(userId: number, id: number): Promise<void> {
   await run(`DELETE FROM schedule_entries WHERE id = ? AND userId = ?`, [id, userId]);
+}
+
+export async function countPublishedByChannel(
+  userId: number,
+  start?: string,
+  end?: string
+): Promise<ChannelPublishCount[]> {
+  const conditions = ["userId = ?", "status = 'published'"];
+  const args: (string | number)[] = [userId];
+  if (start) {
+    conditions.push("date >= ?");
+    args.push(start);
+  }
+  if (end) {
+    conditions.push("date <= ?");
+    args.push(end);
+  }
+
+  const rows = await all<{ channelId: number; count: number }>(
+    `SELECT channelId, COUNT(*) as count FROM schedule_entries WHERE ${conditions.join(" AND ")} GROUP BY channelId`,
+    args
+  );
+  return rows.map((r) => ({ channelId: r.channelId, count: Number(r.count) }));
 }
