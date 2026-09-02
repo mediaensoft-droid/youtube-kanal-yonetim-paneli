@@ -271,3 +271,11 @@ export function countryFlagEmoji(code: string): string {
   );
   return chars.join("");
 }
+
+// Windows' bundled emoji font (Segoe UI Emoji) renders regional-indicator flag emoji as plain
+// two-letter text instead of a picture — so anywhere a flag needs to reliably look like a flag
+// (not just decorate text that already names the country), use an actual flag image instead of
+// countryFlagEmoji(). flagcdn.com is a free, widely-used flag image CDN.
+export function flagImageUrl(code: string): string {
+  return `https://flagcdn.com/${code.toLowerCase()}.svg`;
+}

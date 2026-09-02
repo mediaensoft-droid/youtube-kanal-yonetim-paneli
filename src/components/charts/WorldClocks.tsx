@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import type { CodeDistributionEntry } from "@/lib/stats";
 import { COUNTRY_TIMEZONES } from "@/lib/constants/countryTimezones";
-import { countryFlagEmoji } from "@/lib/constants/countries";
+import { Flag } from "@/components/Flag";
 
 interface WorldClocksProps {
   data: CodeDistributionEntry[];
@@ -70,9 +70,10 @@ export function WorldClocks({ data }: WorldClocksProps) {
           >
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
-                <span className="text-lg leading-none transition-transform duration-200 group-hover:scale-110">
-                  {countryFlagEmoji(entry.code)}
-                </span>
+                <Flag
+                  code={entry.code}
+                  className="h-3.5 w-5 shrink-0 rounded-sm object-cover shadow-sm transition-transform duration-200 group-hover:scale-110"
+                />
                 {formatClock(tz, now)}
                 {dayOffset && (
                   <span className="text-[10px] font-normal text-ink-faint">{dayOffset}</span>

@@ -1,5 +1,3 @@
-import { countryFlagEmoji } from "@/lib/constants/countries";
-
 // Maps an ISO 639-1 language code to one representative country (for a small flag icon next to
 // the language name on the Dashboard's language-distribution chart). A language isn't tied to a
 // single country the way a timezone is, so this is a deliberate, subjective pick — generally the
@@ -93,7 +91,6 @@ const LANGUAGE_COUNTRY: Record<string, string> = {
   zu: "ZA",
 };
 
-export function languageFlagEmoji(languageCode: string): string {
-  const country = LANGUAGE_COUNTRY[languageCode];
-  return country ? countryFlagEmoji(country) : "";
+export function languageFlagCountry(languageCode: string): string | undefined {
+  return LANGUAGE_COUNTRY[languageCode];
 }
