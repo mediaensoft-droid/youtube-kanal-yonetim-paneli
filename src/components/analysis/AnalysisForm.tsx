@@ -145,7 +145,7 @@ function ResultCard({
         )}
       </div>
 
-      <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="stagger grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={<Users className="h-3.5 w-3.5" />} label="Hedef Yaş Kitlesi" value={result.targetAgeGroup} />
         <StatCard icon={<Globe2 className="h-3.5 w-3.5" />} label="Hedef Ülke" value={result.targetCountry} />
         <StatCard
