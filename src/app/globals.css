@@ -204,6 +204,56 @@ input[type="color"] {
   animation: rotate-gradient 40s linear infinite;
 }
 
+/* Sign-in hero: a slow "control room" radar sweep behind the product screenshot — the one
+   authored focal moment for this Persuade surface, tying motion back to the product's own idea
+   (monitoring many live channels from one place) rather than decorating for its own sake. */
+@keyframes radar-sweep-spin {
+  to { --gradient-angle: 360deg; }
+}
+.hero-radar {
+  background: conic-gradient(
+    from var(--gradient-angle) at 50% 50%,
+    transparent 0deg,
+    rgba(255, 0, 0, 0.35) 8deg,
+    transparent 50deg,
+    transparent 360deg
+  );
+  animation: radar-sweep-spin 7s linear infinite;
+}
+
+/* The hero screenshot reveals once on load, bottom-to-top, like a panel powering on — the build's
+   one deliberately authored entrance (longer and more considered than routine UI feedback). */
+@keyframes hero-reveal {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0% 0); }
+}
+.animate-hero-reveal {
+  animation: hero-reveal 900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation-delay: 200ms;
+}
+
+/* A soft glow ring pulsing behind the hero's primary CTA — the single action this page wants
+   taken, earning the one "look here" cue on the surface. */
+@keyframes cta-glow-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.04); }
+}
+.animate-cta-glow {
+  animation: cta-glow-pulse 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Scroll-reveal for below-the-fold sections (features, pricing) — plays once, fast, and stays
+   restrained per the "one focal moment, not repeated section reveals" rule. */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 500ms cubic-bezier(0.23, 1, 0.32, 1), transform 500ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-drift-a,
   .animate-drift-b,
@@ -212,7 +262,18 @@ input[type="color"] {
   .animated-gradient,
   .animate-pulse-ring,
   .animate-breathe,
-  .card-shape {
+  .card-shape,
+  .hero-radar,
+  .animate-cta-glow {
     animation: none;
+  }
+  .animate-hero-reveal {
+    animation: none;
+    clip-path: inset(0 0 0% 0);
+  }
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

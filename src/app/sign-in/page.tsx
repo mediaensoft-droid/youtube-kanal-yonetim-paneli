@@ -11,6 +11,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { countAllChannels } from "@/lib/db/channels";
 import { PLANS } from "@/lib/plans";
 import { CardShapes } from "@/components/CardShapes";
+import { ScrollReveal } from "@/components/ScrollReveal";
 import { SignInButton } from "./SignInButton";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ export default async function SignInPage() {
     <div className="animate-fade-in-up">
       {/* Hero */}
       <section className="grid grid-cols-1 items-center gap-10 py-10 lg:grid-cols-2 lg:gap-12 lg:py-16">
-        <div>
+        <div className="stagger">
           <p className="text-xs font-semibold uppercase tracking-wider text-brand">
             YouTube Kanal Yönetimi
           </p>
@@ -64,8 +65,14 @@ export default async function SignInPage() {
             takvimini planlayın, istatistikleri otomatik takip edin — dağınık tablolara
             gerek kalmadan.
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-4">
-            <SignInButton size="lg" />
+          <div className="relative mt-7 flex flex-wrap items-center gap-4">
+            <div className="relative">
+              <span
+                className="animate-cta-glow pointer-events-none absolute -inset-1.5 -z-10 rounded-lg bg-brand/40 blur-md"
+                aria-hidden="true"
+              />
+              <SignInButton size="lg" />
+            </div>
             <p className="text-xs text-ink-faint">Ücretsiz deneyin, kredi kartı gerekmez.</p>
           </div>
 
@@ -80,9 +87,10 @@ export default async function SignInPage() {
 
         <div className="relative">
           <div className="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
-            <CardShapes seed={7} count={6} />
+            <div className="hero-radar absolute left-1/2 top-1/2 h-[130%] w-[130%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl" />
+            <CardShapes seed={7} count={7} />
           </div>
-          <div className="relative z-10 overflow-hidden rounded-lg border border-line-strong bg-surface shadow-2xl shadow-black/50">
+          <div className="animate-hero-reveal relative z-10 overflow-hidden rounded-lg border border-line-strong bg-surface shadow-2xl shadow-black/50">
             <div className="flex items-center gap-1.5 border-b border-line bg-surface-2 px-3 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
               <span className="h-2.5 w-2.5 rounded-full bg-line-strong" />
@@ -99,23 +107,25 @@ export default async function SignInPage() {
       </section>
 
       {/* Features */}
-      <section className="stagger grid grid-cols-1 gap-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map(({ icon: Icon, title, description }) => (
-          <div
-            key={title}
-            className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-brand">
-              <Icon className="h-5 w-5" />
+      <ScrollReveal className="py-10">
+        <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map(({ icon: Icon, title, description }) => (
+            <div
+              key={title}
+              className="rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-soft text-brand">
+                <Icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 text-sm font-semibold text-ink">{title}</h3>
+              <p className="mt-1.5 text-sm text-ink-muted">{description}</p>
             </div>
-            <h3 className="mt-4 text-sm font-semibold text-ink">{title}</h3>
-            <p className="mt-1.5 text-sm text-ink-muted">{description}</p>
-          </div>
-        ))}
-      </section>
+          ))}
+        </div>
+      </ScrollReveal>
 
       {/* Pricing */}
-      <section className="py-10">
+      <ScrollReveal className="py-10">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold text-ink">Fiyatlandırma</h2>
           <p className="mt-2 text-sm text-ink-muted">
@@ -156,7 +166,7 @@ export default async function SignInPage() {
         <div className="mt-8 flex justify-center">
           <SignInButton size="lg" />
         </div>
-      </section>
+      </ScrollReveal>
 
       <footer className="border-t border-line py-6 text-center text-xs text-ink-faint">
         Kanal Paneli — YouTube kanal portföy yönetimi.
