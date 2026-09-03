@@ -51,3 +51,13 @@ next-env.d.ts
 
 # Claude Code internal state (not project source)
 /.claude/
+
+# AI agent skills (personal tooling, installed via `npx skills add ...`)
+/.agents/
+skills-lock.json
+
+# Impeccable design skill's local workflow config (not project source)
+/.impeccable/
+
+# Other AI agent harnesses' local config (Codex, etc. — not project source)
+/.codex/

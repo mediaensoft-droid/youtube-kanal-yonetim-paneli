@@ -51,26 +51,28 @@ export function Nav() {
           <span className="text-sm font-semibold tracking-tight text-ink">Kanal Paneli</span>
         </div>
 
-        <div className="hidden items-center gap-1 sm:flex">
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={clsx(
-                  "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150",
-                  active
-                    ? "bg-brand text-white shadow-[0_0_0_1px_rgba(255,0,0,0.35)]"
-                    : "text-ink-muted hover:bg-surface-hover hover:text-ink"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            );
-          })}
-        </div>
+        {session?.user && (
+          <div className="hidden items-center gap-1 sm:flex">
+            {links.map(({ href, label, icon: Icon }) => {
+              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={clsx(
+                    "relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150",
+                    active
+                      ? "bg-brand text-white shadow-[0_0_0_1px_rgba(255,0,0,0.35)]"
+                      : "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
         {session?.user && (
           <div className="hidden items-center gap-2 border-l border-line pl-3 ml-1 sm:flex">
@@ -103,17 +105,19 @@ export function Nav() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => setMenuOpen((o) => !o)}
-          aria-label={menuOpen ? "Menüyü kapat" : "Menüyü aç"}
-          className="flex items-center justify-center rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink sm:hidden"
-        >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {session?.user && (
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Menüyü kapat" : "Menüyü aç"}
+            className="flex items-center justify-center rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink sm:hidden"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        )}
       </div>
 
-      {menuOpen && (
+      {menuOpen && session?.user && (
         <div className="animate-fade-in border-t border-line px-4 py-2 sm:hidden">
           {links.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);

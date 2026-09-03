@@ -98,6 +98,13 @@ export async function countChannelsForUser(userId: number): Promise<number> {
   return row?.count ?? 0;
 }
 
+// Platform-wide total, shown as honest usage evidence on the public /sign-in page —
+// not a per-user figure, and not a claimed customer/testimonial count.
+export async function countAllChannels(): Promise<number> {
+  const row = await get<{ count: number }>(`SELECT COUNT(*) as count FROM channels`);
+  return row?.count ?? 0;
+}
+
 export async function getChannelById(userId: number, id: number): Promise<Channel | undefined> {
   const row = await get<ChannelRow>(`SELECT * FROM channels WHERE id = ? AND userId = ?`, [
     id,
