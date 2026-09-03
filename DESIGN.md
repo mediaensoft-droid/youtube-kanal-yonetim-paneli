@@ -19,27 +19,27 @@ colors:
   chart-blue: "#4da3ff"
 typography:
   display:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "clamp(1.875rem, 4vw, 3rem)"
     fontWeight: 700
     lineHeight: "1.15"
   title:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "24px"
     fontWeight: 600
     lineHeight: "1.3"
   heading:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "16px"
     fontWeight: 600
     lineHeight: "1.4"
   body:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: "1.5"
   label:
-    fontFamily: "Arial, Helvetica, sans-serif"
+    fontFamily: "Archivo, system-ui, sans-serif"
     fontSize: "12px"
     fontWeight: 500
     lineHeight: "1.4"
@@ -139,9 +139,9 @@ The palette is almost entirely neutral grays (a five-step surface/text ladder) p
 
 ## Typography
 
-**Body Font:** Arial, Helvetica, sans-serif (the actual rendered stack — see the Don't below).
+**Body Font:** Archivo (via `next/font/google`, `--font-archivo`), system-ui fallback.
 
-**Character:** Plain system sans throughout; no display or accent typeface. Hierarchy is carried entirely by size and weight, not by font change.
+**Character:** A grotesk with a slightly engineered, technical edge — legible and workhorse-plain at the dense 12–14px UI sizes the Operate surfaces live at, with enough structure to hold its own at Display size on the one Persuade surface (`/sign-in`). One family throughout; hierarchy is carried by size and weight, not by font change.
 
 ### Hierarchy
 - **Display** (700, 30–48px fluid, 1.15): the single Persuade-surface hero headline (`/sign-in`). Bigger and bolder than every Operate-mode title on purpose — this is the one screen whose job is to be read from across the room, not scanned in a list. Never used inside the authenticated app.
@@ -151,7 +151,7 @@ The palette is almost entirely neutral grays (a five-step surface/text ladder) p
 - **Label** (500, 12px, 1.4): meta text, badge text, chart axis labels, timestamps.
 
 ### Named Rules
-**The Unused-Webfont Rule.** `layout.tsx` loads Geist Sans/Geist Mono via `next/font` and exposes `--font-geist-sans`/`--font-geist-mono` through Tailwind's `@theme inline`, but no component ever applies `font-sans`/`font-mono` — `body`'s explicit `font-family: Arial, Helvetica, sans-serif` wins everywhere. Treat Arial/Helvetica/system-sans as the current normative typeface; don't assume Geist renders anywhere until that's wired up on purpose.
+**The One-Family Rule.** Archivo is loaded once in `layout.tsx` and consumed through `body`'s `font-family: var(--font-sans)` — every weight and size step in this system is the same family. Don't introduce a second typeface for "display" contrast; the Display role gets there through size/weight alone.
 
 ## Layout
 
@@ -227,6 +227,6 @@ Every Dashboard card (stat tiles and the four chart cards) carries three coordin
 ### Don't:
 - **Don't** introduce a second accent color into chrome — category/concept badges and chart colors are the only exceptions, and they're intentionally scoped to their own contexts.
 - **Don't** add a shadow to a resting, non-interactive element — flat-by-default is a rule, not a placeholder.
-- **Don't** assume Geist renders — it's loaded but unused; the real typeface is Arial/Helvetica/system sans until that's deliberately fixed.
+- **Don't** load a second typeface for contrast — Archivo's weight range (400–700 used today) carries the whole hierarchy, Display included.
 - **Don't** use dashed, double, or gradient borders — every border in the system is 1px solid `line`/`line-strong`.
 - **Don't** build a light theme variant without an explicit decision — every token here assumes a permanently dark canvas.

@@ -1,19 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo } from "next/font/google";
 import { Toaster } from "sonner";
 import { Nav } from "@/components/Nav";
 import { BackgroundDecor } from "@/components/BackgroundDecor";
 import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// A grotesk with a slightly engineered, technical character — fits the "control room"
+// monitoring-dashboard concept without reaching for the Inter/Geist/Plus Jakarta default every
+// AI-generated interface converges on. latin-ext carries Turkish's İ/ı/ş/ğ/ç/ö/ü.
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin", "latin-ext"],
 });
 
 export const metadata: Metadata = {
@@ -35,10 +33,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="tr"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="tr" className={`${archivo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-canvas">
         <AuthProvider>
           <BackgroundDecor />
