@@ -105,6 +105,19 @@ export async function countAllChannels(): Promise<number> {
   return row?.count ?? 0;
 }
 
+// Real per-channel subscriber counts, powering the /sign-in hero's growth card — every bar is a
+// live channel's actual subscriberCount, never a fabricated trend.
+export async function getSubscriberSnapshot(): Promise<{ total: number; bars: number[] }> {
+  const rows = await all<{ subscriberCount: number | null }>(
+    `SELECT subscriberCount FROM channels WHERE subscriberCount IS NOT NULL ORDER BY subscriberCount DESC`
+  );
+  const counts = rows.map((row) => row.subscriberCount ?? 0);
+  return {
+    total: counts.reduce((sum, count) => sum + count, 0),
+    bars: counts.slice(0, 24),
+  };
+}
+
 export async function getChannelById(userId: number, id: number): Promise<Channel | undefined> {
   const row = await get<ChannelRow>(`SELECT * FROM channels WHERE id = ? AND userId = ?`, [
     id,

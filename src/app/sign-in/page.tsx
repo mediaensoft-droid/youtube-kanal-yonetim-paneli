@@ -8,9 +8,10 @@ import {
   Globe2,
 } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
-import { countAllChannels } from "@/lib/db/channels";
+import { countAllChannels, getSubscriberSnapshot } from "@/lib/db/channels";
 import { PLANS } from "@/lib/plans";
 import { CardShapes } from "@/components/CardShapes";
+import { ChannelGrowthCard } from "@/components/ChannelGrowthCard";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { SignInButton } from "./SignInButton";
 
@@ -48,6 +49,7 @@ export default async function SignInPage() {
   if (userId) redirect("/");
 
   const channelCount = await countAllChannels();
+  const { total: totalSubscribers, bars: subscriberBars } = await getSubscriberSnapshot();
 
   return (
     <div className="animate-fade-in-up">
@@ -103,6 +105,7 @@ export default async function SignInPage() {
               className="w-full"
             />
           </div>
+          <ChannelGrowthCard totalSubscribers={totalSubscribers} bars={subscriberBars} />
         </div>
       </section>
 

@@ -262,6 +262,16 @@ input[type="color"] {
   animation: cta-glow-pulse 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
+/* ChannelGrowthCard's bar chart — each bar grows from its own base once on load, staggered like
+   the hero's other entrances. Real per-channel subscriber data, not a fabricated trend. */
+@keyframes channel-bar-grow {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+.channel-bar {
+  animation: channel-bar-grow 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Scroll-reveal for below-the-fold sections (features, pricing) — plays once, fast, and stays
    restrained per the "one focal moment, not repeated section reveals" rule. */
 .scroll-reveal {
@@ -286,8 +296,13 @@ input[type="color"] {
   .animate-cta-glow,
   .network-node,
   .network-node-pulse,
-  .network-signal-edge {
+  .network-signal-edge,
+  .channel-bar {
     animation: none;
+  }
+  .channel-bar {
+    opacity: 1;
+    transform: scaleY(1);
   }
   .animate-hero-reveal {
     animation: none;
