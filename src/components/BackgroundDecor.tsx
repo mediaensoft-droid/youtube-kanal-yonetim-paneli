@@ -1,89 +1,67 @@
-"use client";
+// "Signal Network" — a sparse field of nodes connected by faint lines, with a handful of edges
+// carrying a slow traveling pulse and a handful of nodes blinking in brand red. The concept is
+// literal on purpose: this product's whole job is watching many channels — many signals — from
+// one place, so the background reads as a live network rather than decorative clutter. Pure CSS
+// animation, no client JS, so this renders as a server component.
 
-import { useEffect, useRef } from "react";
-import { Play, ThumbsUp, Bell, MessageCircle, Share2, Eye } from "lucide-react";
+const VIEW_W = 1000;
+const VIEW_H = 600;
+const NODE_COUNT = 52;
 
-interface IconProps {
-  width: number;
-  height: number;
-  className?: string;
-  strokeWidth?: number;
-}
-
-function PlayBadge({ width, className }: IconProps) {
-  return (
-    <svg width={width} height={width * 0.7} viewBox="0 0 26 18" className={className}>
-      <rect width="26" height="18" rx="6" className="fill-current" />
-      <path d="M10.5 5.5L17 9L10.5 12.5V5.5Z" fill="var(--canvas)" />
-    </svg>
-  );
-}
-
-const ICON_POOL = [PlayBadge, Play, ThumbsUp, Bell, MessageCircle, Share2, Eye];
-const ICON_COUNT = 100;
-
-// Deterministic pseudo-random scatter (no Math.random) so server- and client-rendered output match.
+// Deterministic pseudo-random (no Math.random) so server- and client-rendered output match.
 function seeded(seed: number): number {
   const v = Math.sin(seed * 12.9898) * 43758.5453;
   return Math.abs(v - Math.floor(v));
 }
 
-const ICON_DEFS = Array.from({ length: ICON_COUNT }, (_, i) => ({
-  Icon: ICON_POOL[i % ICON_POOL.length],
-  left: 3 + seeded(i * 2 + 1) * 92,
-  top: 5 + seeded(i * 2 + 2) * 90,
-  size: 14 + (i % 5) * 3,
+interface NetworkNode {
+  x: number;
+  y: number;
+  r: number;
+  pulse: boolean;
+  delay: number;
+}
+
+const NODES: NetworkNode[] = Array.from({ length: NODE_COUNT }, (_, i) => ({
+  x: seeded(i * 2 + 1) * VIEW_W,
+  y: seeded(i * 2 + 2) * VIEW_H,
+  r: 1.6 + seeded(i * 3 + 1) * 1.6,
+  pulse: i % 6 === 0,
+  delay: seeded(i * 5 + 3) * 6,
 }));
 
-const FLEE_RADIUS = 140;
-const FLEE_STRENGTH = 55;
+interface NetworkEdge {
+  a: number;
+  b: number;
+  signal: boolean;
+  delay: number;
+}
+
+// Each node connects to its two nearest neighbors — a sparse, elegant graph rather than a dense
+// hairball. Every 7th edge carries the animated "signal" dash.
+function buildEdges(): NetworkEdge[] {
+  const edges: NetworkEdge[] = [];
+  const seen = new Set<string>();
+  NODES.forEach((node, i) => {
+    const nearest = NODES.map((other, j) => ({
+      j,
+      d: i === j ? Infinity : Math.hypot(node.x - other.x, node.y - other.y),
+    }))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 2);
+    nearest.forEach(({ j }) => {
+      const key = i < j ? `${i}-${j}` : `${j}-${i}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      edges.push({ a: i, b: j, signal: edges.length % 7 === 0, delay: seeded(edges.length * 3 + 1) * 3 });
+    });
+  });
+  return edges;
+}
+
+const EDGES = buildEdges();
 
 export function BackgroundDecor() {
-  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    let rafId: number | null = null;
-    let pointer: { x: number; y: number } | null = null;
-
-    function applyFlee() {
-      rafId = null;
-      if (!pointer) return;
-      const { x, y } = pointer;
-      const { innerWidth, innerHeight } = window;
-
-      iconRefs.current.forEach((el, i) => {
-        if (!el) return;
-        const def = ICON_DEFS[i];
-        const baseX = (def.left / 100) * innerWidth;
-        const baseY = (def.top / 100) * innerHeight;
-        const dx = baseX - x;
-        const dy = baseY - y;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist < FLEE_RADIUS && dist > 0.01) {
-          const push = (1 - dist / FLEE_RADIUS) * FLEE_STRENGTH;
-          el.style.transform = `translate(${(dx / dist) * push}px, ${(dy / dist) * push}px)`;
-        } else {
-          el.style.transform = "";
-        }
-      });
-    }
-
-    function handleMouseMove(e: MouseEvent) {
-      pointer = { x: e.clientX, y: e.clientY };
-      if (rafId === null) rafId = requestAnimationFrame(applyFlee);
-    }
-
-    // Tracks the cursor at the document level rather than per-icon hover: the icons sit behind
-    // the page content (-z-10), so foreground elements would otherwise intercept every pointer
-    // event before it ever reached them.
-    document.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-    };
-  }, []);
-
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
       <div className="animated-gradient absolute inset-0" />
@@ -92,31 +70,42 @@ export function BackgroundDecor() {
       <div className="animate-drift-b absolute top-1/3 -right-40 h-72 w-72 rounded-full bg-brand/[0.06] blur-[100px]" />
       <div className="animate-drift-c absolute -bottom-40 left-1/3 h-72 w-72 rounded-full bg-red-700/[0.08] blur-[100px]" />
 
-      {ICON_DEFS.map((def, i) => (
-        <div
-          key={i}
-          ref={(el) => {
-            iconRefs.current[i] = el;
-          }}
-          className="absolute transition-transform duration-200 ease-out"
-          style={{ left: `${def.left}%`, top: `${def.top}%` }}
-        >
-          <div
-            className="animate-float-icon"
-            style={{
-              animationDelay: `${(i % 6) * 0.6}s`,
-              animationDuration: `${15 + (i % 5) * 2}s`,
-            }}
-          >
-            <def.Icon
-              width={def.size}
-              height={def.size}
-              className="text-white/[0.14]"
-              strokeWidth={1.5}
+      <svg
+        className="absolute inset-0 h-full w-full"
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <g stroke="white" strokeOpacity="0.05" strokeWidth="1">
+          {EDGES.filter((e) => !e.signal).map((e, i) => (
+            <line key={i} x1={NODES[e.a].x} y1={NODES[e.a].y} x2={NODES[e.b].x} y2={NODES[e.b].y} />
+          ))}
+        </g>
+        <g fill="none" strokeWidth="1.2">
+          {EDGES.filter((e) => e.signal).map((e, i) => (
+            <line
+              key={i}
+              className="network-signal-edge"
+              x1={NODES[e.a].x}
+              y1={NODES[e.a].y}
+              x2={NODES[e.b].x}
+              y2={NODES[e.b].y}
+              stroke="var(--brand)"
+              strokeOpacity="0.4"
+              style={{ animationDelay: `${e.delay}s` }}
             />
-          </div>
-        </div>
-      ))}
+          ))}
+        </g>
+        {NODES.map((node, i) => (
+          <circle
+            key={i}
+            cx={node.x}
+            cy={node.y}
+            r={node.r}
+            className={node.pulse ? "network-node-pulse" : "network-node"}
+            style={{ animationDelay: `${node.delay}s` }}
+          />
+        ))}
+      </svg>
     </div>
   );
 }

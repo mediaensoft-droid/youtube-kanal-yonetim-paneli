@@ -117,15 +117,36 @@ input[type="color"] {
   50% { transform: translate(45px, -50px) scale(1.1); }
 }
 
-@keyframes float-icon {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-16px) rotate(6deg); }
-}
-
 .animate-drift-a { animation: drift-a 22s ease-in-out infinite; }
 .animate-drift-b { animation: drift-b 27s ease-in-out infinite; }
 .animate-drift-c { animation: drift-c 25s ease-in-out infinite; }
-.animate-float-icon { animation: float-icon 16s ease-in-out infinite; }
+
+/* BackgroundDecor's "Signal Network" — a faint node graph behind every page. Most nodes just
+   breathe in place; a few blink brand-red like an occasional live ping, and a few edges carry a
+   traveling dash to read as data moving across the network rather than a static diagram. */
+@keyframes node-breathe {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.3; }
+}
+@keyframes node-pulse-blink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@keyframes signal-flow {
+  to { stroke-dashoffset: -40; }
+}
+.network-node {
+  fill: white;
+  animation: node-breathe 6s ease-in-out infinite;
+}
+.network-node-pulse {
+  fill: var(--brand);
+  animation: node-pulse-blink 2.6s ease-in-out infinite;
+}
+.network-signal-edge {
+  stroke-dasharray: 6 16;
+  animation: signal-flow 3.2s linear infinite;
+}
 
 /* A soft radar-style ping behind Dashboard stat-tile icons — loops slowly so it reads as "live
    data" ambiance rather than a distracting attention-grabber. */
@@ -257,13 +278,15 @@ input[type="color"] {
   .animate-drift-a,
   .animate-drift-b,
   .animate-drift-c,
-  .animate-float-icon,
   .animated-gradient,
   .animate-pulse-ring,
   .animate-breathe,
   .card-shape,
   .hero-radar,
-  .animate-cta-glow {
+  .animate-cta-glow,
+  .network-node,
+  .network-node-pulse,
+  .network-signal-edge {
     animation: none;
   }
   .animate-hero-reveal {
