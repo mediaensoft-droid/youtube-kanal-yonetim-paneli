@@ -10,7 +10,7 @@ import {
 import { getSessionUserId } from "@/lib/auth";
 import { countAllChannels, getSubscriberSnapshot } from "@/lib/db/channels";
 import { PLANS } from "@/lib/plans";
-import { CardShapes } from "@/components/CardShapes";
+import { CardAura } from "@/components/CardAura";
 import { ChannelGrowthCard } from "@/components/ChannelGrowthCard";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { SignInButton } from "./SignInButton";
@@ -90,7 +90,7 @@ export default async function SignInPage() {
         <div className="relative">
           <div className="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
             <div className="hero-radar absolute left-1/2 top-1/2 h-[130%] w-[130%] -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl" />
-            <CardShapes seed={7} count={7} />
+            <CardAura seed={7} />
           </div>
           <div className="animate-hero-reveal relative z-10 overflow-hidden rounded-lg border border-line-strong bg-surface shadow-2xl shadow-black/50">
             <div className="flex items-center gap-1.5 border-b border-line bg-surface-2 px-3 py-2.5">

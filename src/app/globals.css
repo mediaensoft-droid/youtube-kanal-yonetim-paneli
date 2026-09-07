@@ -163,41 +163,25 @@ input[type="color"] {
 }
 .animate-breathe { animation: breathe 3.2s ease-in-out infinite; }
 
-/* Small drifting outline shapes behind Dashboard card content (CardShapes component) — each
-   shape gets its own gentle float via a per-element --drift-x/--drift-y/--drift-r custom
-   property set inline, so a handful of differently-sized/-timed circles, rings, dots and
-   diamonds read as loosely alive rather than a single uniform motion. Sits behind the card's
-   real content, which needs its own `relative z-10` wrapper since an absolutely-positioned
-   element with z-index:auto paints above static in-flow content regardless of DOM order. */
-@keyframes card-shape-float {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(var(--drift-x, 12px), var(--drift-y, -12px)) rotate(var(--drift-r, 12deg)); }
+/* Ambient wash behind card content (CardAura component) — two large, edgeless, very low-opacity
+   radial gradients that breathe over ~30s. This replaces the earlier hard-outlined shapes that
+   drifted and rotated here: those read as objects moving behind text, which is tiring to sit in
+   front of. The motion below is deliberately under the "something is moving" threshold — no
+   rotation, no edges, ~16px of drift and a 16% scale over half a minute — so it registers as
+   depth rather than activity. Sits behind the card's real content, which needs its own
+   `relative z-10` wrapper since an absolutely-positioned element with z-index:auto paints above
+   static in-flow content regardless of DOM order. */
+@keyframes card-aura-breathe {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate3d(var(--aura-x, 6px), var(--aura-y, -6px), 0) scale(1.16); opacity: 1; }
 }
-@keyframes card-shape-float-diamond {
-  0%, 100% { transform: translate(0, 0) rotate(45deg); }
-  50% { transform: translate(var(--drift-x, 12px), var(--drift-y, -12px)) rotate(calc(45deg + var(--drift-r, 12deg))); }
-}
-.card-shape {
+.card-aura {
   position: absolute;
-  animation-name: card-shape-float;
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  animation-name: card-aura-breathe;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
-}
-.card-shape--circle {
-  border: 2px solid;
-  border-radius: 9999px;
-}
-.card-shape--ring {
-  border: 1.5px solid;
-  border-radius: 9999px;
-  opacity: 0.7;
-}
-.card-shape--dot {
-  border-radius: 9999px;
-}
-.card-shape--diamond {
-  border: 2px solid;
-  animation-name: card-shape-float-diamond;
 }
 
 @property --gradient-angle {
@@ -291,7 +275,7 @@ input[type="color"] {
   .animated-gradient,
   .animate-pulse-ring,
   .animate-breathe,
-  .card-shape,
+  .card-aura,
   .hero-radar,
   .animate-cta-glow,
   .network-node,

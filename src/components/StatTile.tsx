@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { CardShapes } from "@/components/CardShapes";
+import { CardAura } from "@/components/CardAura";
 
 interface StatTileProps {
   label: string;
@@ -51,7 +51,7 @@ export function StatTile({ label, value, icon }: StatTileProps) {
 
   return (
     <div className="group relative flex items-center gap-4 overflow-hidden rounded-lg border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg hover:shadow-black/20">
-      <CardShapes seed={seedFromLabel(label)} count={3} />
+      <CardAura seed={seedFromLabel(label)} />
       {icon && (
         <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand transition-transform duration-200 group-hover:scale-105">
           <span className="animate-pulse-ring absolute inset-0 rounded-full bg-brand-soft" aria-hidden="true" />
