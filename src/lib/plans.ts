@@ -40,12 +40,7 @@ export const PLANS: PlanDefinition[] = [
     priceTRY: 599,
     channelLimit: null,
     description: "Ajanslar ve büyük ölçekli operasyonlar için",
-    features: [
-      "Sınırsız kanal ekleme",
-      "Günlük otomatik yenileme",
-      "Öncelikli destek",
-      "Kanal analiz paneli (yakında)",
-    ],
+    features: ["Sınırsız kanal ekleme", "Günlük otomatik yenileme", "Öncelikli destek"],
   },
 ];
 

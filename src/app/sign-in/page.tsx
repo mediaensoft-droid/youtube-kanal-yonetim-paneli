@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   CalendarDays,
   RefreshCw,
-  Sparkles,
   Check,
   Globe2,
 } from "lucide-react";
@@ -35,12 +34,6 @@ const FEATURES = [
     title: "Otomatik İstatistik Yenileme",
     description:
       "Abone, görüntülenme ve video sayıları otomatik güncellenir; her kanalın büyüme trendini zaman içinde izleyin.",
-  },
-  {
-    icon: Sparkles,
-    title: "AI Destekli Kanal Analizi",
-    description:
-      "Ultra planda: NexLev verisi ve Claude ile kitle uyumu, RPM ve gelir tahmini — kanal başına derinlemesine analiz.",
   },
 ];
 

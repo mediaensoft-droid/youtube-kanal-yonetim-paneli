@@ -14,7 +14,6 @@ import {
   X,
   LogOut,
   CreditCard,
-  Search,
   CalendarDays,
   UserRound,
 } from "lucide-react";
@@ -25,7 +24,6 @@ const links = [
   { href: "/categories", label: "Kategoriler", icon: Layers },
   { href: "/concepts", label: "Konseptler", icon: Lightbulb },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
-  { href: "/analysis", label: "Analiz", icon: Search },
   { href: "/billing", label: "Üyelik", icon: CreditCard },
 ];
 
