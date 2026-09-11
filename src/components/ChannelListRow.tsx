@@ -14,13 +14,15 @@ import {
   Video,
   Eye,
   EyeOff,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Channel, Category, Concept } from "@/types";
+import type { Channel, Category, Concept, ChannelStatus } from "@/types";
 import { ChannelTagBadges } from "@/components/ChannelTagBadges";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
 import { ChannelPassiveWarning } from "@/components/ChannelPassiveWarning";
+import { ChannelActivateWarning } from "@/components/ChannelActivateWarning";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
@@ -43,6 +45,7 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [passiveConfirmOpen, setPassiveConfirmOpen] = useState(false);
+  const [activateConfirmOpen, setActivateConfirmOpen] = useState(false);
 
   async function handleRefresh(e: React.MouseEvent) {
     e.stopPropagation();
@@ -61,11 +64,12 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
   }
 
   const isActive = channel.status === "active";
-  // Planned (reference) channels aren't the user's own, so parking them makes no sense.
-  const canToggle = channel.status !== "planned";
+  const isPlanned = channel.status === "planned";
+  // Planned (reference) channels aren't the user's own, so parking them makes no sense — they get
+  // a "make active" action instead, which moves them into the own-channel set.
+  const canToggle = !isPlanned;
 
-  async function handleToggleActive() {
-    const nextStatus = isActive ? "passive" : "active";
+  async function changeStatus(nextStatus: ChannelStatus) {
     setToggling(true);
     try {
       const res = await fetch(`/api/channels/${channel.id}`, {
@@ -78,13 +82,24 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
       onStatusChanged(channel.id);
       // Calendar/dashboard/category counts all derive from the active set — refresh their server data.
       router.refresh();
-      toast.success(nextStatus === "active" ? "Kanal aktife alındı" : "Kanal pasife alındı");
+      toast.success(
+        isPlanned
+          ? "Kanal aktif kanallarına taşındı"
+          : nextStatus === "active"
+            ? "Kanal aktife alındı"
+            : "Kanal pasife alındı"
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "İşlem başarısız oldu");
     } finally {
       setToggling(false);
       setPassiveConfirmOpen(false);
+      setActivateConfirmOpen(false);
     }
+  }
+
+  function handleToggleActive() {
+    return changeStatus(isActive ? "passive" : "active");
   }
 
   // Reactivating is harmless (nothing is hidden or lost), so only the passive direction asks first.
@@ -204,6 +219,20 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
           >
             <ListVideo className="h-4 w-4" />
           </a>
+          {isPlanned && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivateConfirmOpen(true);
+              }}
+              disabled={toggling}
+              title="Kanalı aktif yap"
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-emerald-300 transition-colors duration-150 hover:bg-emerald-950/40 disabled:opacity-50"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Aktif Yap</span>
+            </button>
+          )}
           {canToggle && (
             <button
               onClick={handleToggleClick}
@@ -231,6 +260,16 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={activateConfirmOpen}
+        title="Kanalı aktif yap"
+        description={<ChannelActivateWarning channel={channel} />}
+        confirmLabel="Aktif yap"
+        danger={false}
+        onConfirm={() => changeStatus("active")}
+        onCancel={() => setActivateConfirmOpen(false)}
+      />
 
       <ConfirmDialog
         open={passiveConfirmOpen}

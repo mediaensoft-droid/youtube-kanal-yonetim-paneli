@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
+import { getChannelLimit } from "@/lib/access";
 import { updateChannelSchema } from "@/lib/validation";
 import {
   getChannelById,
+  countChannelsForUser,
   updateChannelManualFields,
   setChannelStatus,
   deleteChannel,
@@ -41,6 +43,21 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   const { status, ...manualFields } = parsed.data;
+
+  // A planned (reference) channel becoming the user's own starts occupying an own-channel slot.
+  if (status !== undefined && status !== "planned" && existing.status === "planned") {
+    const channelLimit = await getChannelLimit(userId);
+    if (channelLimit !== null) {
+      const currentCount = await countChannelsForUser(userId);
+      if (currentCount >= channelLimit) {
+        return errorResponse(
+          402,
+          `Plan kanal limitinize ulaştınız (${currentCount}/${channelLimit}). Bu kanalı aktif yapmak için planınızı yükseltin.`
+        );
+      }
+    }
+  }
+
   let channel = await updateChannelManualFields(userId, channelId, manualFields);
   if (status !== undefined && status !== existing.status) {
     channel = await setChannelStatus(userId, channelId, status);
