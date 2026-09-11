@@ -16,6 +16,7 @@ import { ColumnMenu } from "./ColumnMenu";
 export interface BoardMember {
   id: number;
   displayName: string;
+  status: "active" | "disabled";
 }
 
 export interface BoardChannel {
@@ -119,6 +120,9 @@ export function TaskBoard({
 
   const today = useMemo(() => todayKey(), []);
   const membersById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
+  // Only active members are offered as new assignment targets; disabled members are still
+  // resolved (via membersById) for tasks already assigned to them.
+  const activeMembers = useMemo(() => members.filter((m) => m.status === "active"), [members]);
   const channelsById = useMemo(() => new Map(channels.map((c) => [c.id, c])), [channels]);
   const columnsById = useMemo(() => new Map(columns.map((c) => [c.id, c])), [columns]);
 
@@ -382,7 +386,7 @@ export function TaskBoard({
             <Select value={assigneeFilter} onChange={(e) => setAssigneeFilter(e.target.value)} aria-label="Atanan filtresi">
               <option value="all">Atanan: Tümü</option>
               <option value="me">Bana atananlar</option>
-              {members.map((member) => (
+              {activeMembers.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.displayName}
                 </option>
@@ -493,23 +497,36 @@ export function TaskBoard({
                     Kart yok
                   </p>
                 )}
-                {columnTasks.map((task, i) => (
-                  <div key={task.id}>
-                    {indicatorIndex === i && <DropIndicator />}
-                    <TaskCard
-                      task={task}
-                      overdue={isOverdue(task)}
-                      assignee={task.assigneeMemberId === null ? undefined : membersById.get(task.assigneeMemberId)}
-                      channel={task.channelId === null ? undefined : channelsById.get(task.channelId)}
-                      readOnly={readOnly}
-                      dragging={draggingId === task.id}
-                      onOpen={() => setActiveTaskId(task.id)}
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                    />
-                  </div>
-                ))}
-                {indicatorIndex !== null && indicatorIndex >= columnTasks.length && <DropIndicator />}
+                {(() => {
+                  // indicatorIndex is a position among non-dragged cards (see handleDragOver), but
+                  // columnTasks still includes the dragged card itself — skip it when counting so the
+                  // indicator lands on the correct slot instead of being off by one below it.
+                  let k = 0;
+                  return columnTasks.map((task) => {
+                    const isDragged = task.id === draggingId;
+                    const slot = isDragged ? null : k++;
+                    return (
+                      <div key={task.id}>
+                        {slot !== null && indicatorIndex === slot && <DropIndicator />}
+                        <TaskCard
+                          task={task}
+                          overdue={isOverdue(task)}
+                          assignee={task.assigneeMemberId === null ? undefined : membersById.get(task.assigneeMemberId)}
+                          channel={task.channelId === null ? undefined : channelsById.get(task.channelId)}
+                          readOnly={readOnly}
+                          dragging={draggingId === task.id}
+                          onOpen={() => setActiveTaskId(task.id)}
+                          onDragStart={(e) => handleDragStart(e, task)}
+                          onDragEnd={handleDragEnd}
+                        />
+                      </div>
+                    );
+                  });
+                })()}
+                {indicatorIndex !== null &&
+                  indicatorIndex >= columnTasks.length - (draggingId !== null && columnTasks.some((t) => t.id === draggingId) ? 1 : 0) && (
+                    <DropIndicator />
+                  )}
               </div>
 
               {!readOnly && (

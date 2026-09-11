@@ -30,7 +30,7 @@ export default async function TasksPage() {
     <TaskBoard
       initialColumns={columns}
       initialTasks={tasks}
-      members={members.map((member) => ({ id: member.id, displayName: member.displayName }))}
+      members={members.map((member) => ({ id: member.id, displayName: member.displayName, status: member.status }))}
       channels={channels}
       readOnly={!can(actor.role, "task.write")}
       canDelete={can(actor.role, "task.delete")}

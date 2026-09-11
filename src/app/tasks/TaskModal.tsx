@@ -78,14 +78,17 @@ export function TaskModal({
   const [commentBody, setCommentBody] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
 
-  // Close on Escape.
+  // Close on Escape — but not while the delete ConfirmDialog is open (it should handle its own
+  // Escape first) or when some other handler already claimed the key.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      if (e.defaultPrevented) return;
+      if (confirmDelete) return;
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, confirmDelete]);
 
   // Comments are loaded lazily, only when the card is opened.
   useEffect(() => {
@@ -105,6 +108,17 @@ export function TaskModal({
       cancelled = true;
     };
   }, [task.id]);
+
+  // Only active members are offered as new assignees; if the task is already assigned to a
+  // disabled member, keep that one option so the select still shows/resolves their name.
+  const assigneeOptions = useMemo(() => {
+    const active = members.filter((m) => m.status === "active");
+    if (task.assigneeMemberId !== null && !active.some((m) => m.id === task.assigneeMemberId)) {
+      const current = members.find((m) => m.id === task.assigneeMemberId);
+      if (current) return [...active, current];
+    }
+    return active;
+  }, [members, task.assigneeMemberId]);
 
   // Only the fields that actually differ from the saved task go into the PATCH.
   const patch = useMemo<TaskPatch>(() => {
@@ -199,6 +213,8 @@ export function TaskModal({
       if (!res.ok) throw new Error(data.error ?? "Yorum gönderilemedi");
       setComments((prev) => [...(prev ?? []), data as TaskComment]);
       setCommentBody("");
+      // Keep the board's card badge in sync without a full board refresh.
+      onSaved({ ...task, commentCount: task.commentCount + 1 });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Yorum gönderilemedi");
     } finally {
@@ -267,7 +283,7 @@ export function TaskModal({
                   disabled={readOnly}
                 >
                   <option value="">—</option>
-                  {members.map((member) => (
+                  {assigneeOptions.map((member) => (
                     <option key={member.id} value={member.id}>
                       {member.displayName}
                     </option>

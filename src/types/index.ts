@@ -201,6 +201,7 @@ export interface Task {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  commentCount: number;
 }
 
 export interface TaskComment {

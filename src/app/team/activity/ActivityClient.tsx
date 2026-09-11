@@ -275,7 +275,8 @@ export function ActivityClient({ members }: ActivityClientProps) {
                     value={countFor(memberSummary, ["schedule.upsert", "schedule.delete", "schedule.pattern"])}
                   />
                   <Stat label="Giriş" value={countFor(memberSummary, ["auth.login"])} />
-                  {/* TODO(C): görev sayıları */}
+                  <Stat label="Atanan görev" value={countFor(memberSummary, ["task.assigned"])} />
+                  <Stat label="Tamamladı" value={countFor(memberSummary, ["task.complete"])} />
                 </dl>
               </div>
             );

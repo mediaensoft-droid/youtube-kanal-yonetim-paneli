@@ -35,6 +35,8 @@ interface TaskRow {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Only present when the query joins the comment-count subquery (see TASK_COLUMNS_WITH_COMMENTS). */
+  commentCount?: number;
 }
 
 function rowToTask(row: TaskRow): Task {
@@ -53,6 +55,7 @@ function rowToTask(row: TaskRow): Task {
     completedAt: row.completedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    commentCount: row.commentCount ?? 0,
   };
 }
 
@@ -79,6 +82,11 @@ function rowToComment(row: TaskCommentRow): TaskComment {
 const COLUMN_COLUMNS = "id, name, position, isDone, createdAt";
 const TASK_COLUMNS =
   "id, columnId, title, description, assigneeMemberId, channelId, dueDate, priority, position, checklist, createdByMemberId, completedAt, createdAt, updatedAt";
+
+// Grouped subquery keeps this a single round trip instead of N+1 comment-count lookups per task.
+const TASK_COMMENT_COUNT_JOIN =
+  "LEFT JOIN (SELECT taskId, COUNT(*) AS commentCount FROM task_comments GROUP BY taskId) tcc ON tcc.taskId = tasks.id";
+const TASK_COLUMNS_WITH_COMMENTS = `${TASK_COLUMNS}, COALESCE(tcc.commentCount, 0) AS commentCount`;
 
 const DEFAULT_COLUMNS: { name: string; isDone: boolean }[] = [
   { name: "Yapılacak", isDone: false },
@@ -114,7 +122,10 @@ export async function listBoard(userId: number): Promise<Board> {
     all<TaskColumnRow>(`SELECT ${COLUMN_COLUMNS} FROM task_columns WHERE userId = ? ORDER BY position ASC`, [
       userId,
     ]),
-    all<TaskRow>(`SELECT ${TASK_COLUMNS} FROM tasks WHERE userId = ? ORDER BY position ASC`, [userId]),
+    all<TaskRow>(
+      `SELECT ${TASK_COLUMNS_WITH_COMMENTS} FROM tasks ${TASK_COMMENT_COUNT_JOIN} WHERE userId = ? ORDER BY position ASC`,
+      [userId]
+    ),
   ]);
   return { columns: columnRows.map(rowToColumn), tasks: taskRows.map(rowToTask) };
 }
@@ -227,7 +238,10 @@ export async function deleteColumn(userId: number, id: number): Promise<void> {
 }
 
 export async function getTaskById(userId: number, id: number): Promise<Task | undefined> {
-  const row = await get<TaskRow>(`SELECT ${TASK_COLUMNS} FROM tasks WHERE id = ? AND userId = ?`, [id, userId]);
+  const row = await get<TaskRow>(
+    `SELECT ${TASK_COLUMNS_WITH_COMMENTS} FROM tasks ${TASK_COMMENT_COUNT_JOIN} WHERE id = ? AND userId = ?`,
+    [id, userId]
+  );
   return row ? rowToTask(row) : undefined;
 }
 

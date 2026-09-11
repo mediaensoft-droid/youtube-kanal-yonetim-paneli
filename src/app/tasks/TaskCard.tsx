@@ -2,7 +2,7 @@
 
 import type { DragEvent } from "react";
 import clsx from "clsx";
-import { CalendarDays, CheckSquare } from "lucide-react";
+import { CalendarDays, CheckSquare, MessageSquare } from "lucide-react";
 import type { Task, TaskPriority } from "@/types";
 import { formatShortDate } from "@/lib/format";
 import type { BoardChannel, BoardMember } from "./TaskBoard";
@@ -44,7 +44,7 @@ export function TaskCard({
 }: TaskCardProps) {
   const checklistTotal = task.checklist.length;
   const checklistDone = task.checklist.filter((item) => item.done).length;
-  const hasMeta = assignee || task.dueDate || channel || checklistTotal > 0;
+  const hasMeta = assignee || task.dueDate || channel || checklistTotal > 0 || task.commentCount > 0;
 
   return (
     <div
@@ -79,7 +79,7 @@ export function TaskCard({
               title={assignee.displayName}
               className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-semibold text-ink"
             >
-              {assignee.displayName.trim().charAt(0).toUpperCase() || "?"}
+              {assignee.displayName.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?"}
             </span>
           )}
 
@@ -104,6 +104,13 @@ export function TaskCard({
                 alt={channel.name}
                 className="h-4 w-4 rounded-full object-cover"
               />
+            </span>
+          )}
+
+          {task.commentCount > 0 && (
+            <span className="inline-flex items-center gap-1" title="Yorumlar">
+              <MessageSquare className="h-3 w-3" />
+              {task.commentCount}
             </span>
           )}
 
