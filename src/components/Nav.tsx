@@ -14,6 +14,7 @@ import {
   CreditCard,
   CalendarDays,
   ClipboardList,
+  StickyNote,
   UserRound,
   Users,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const BASE_LINKS = [
   { href: "/channels", label: "Kanallar", icon: Tv },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
   { href: "/tasks", label: "Görevler", icon: ClipboardList },
+  { href: "/notes", label: "Notlarım", icon: StickyNote },
 ];
 
 const OWNER_ONLY_LINKS = [
