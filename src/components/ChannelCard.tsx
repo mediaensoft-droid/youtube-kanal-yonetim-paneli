@@ -237,7 +237,6 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
                 }`}
               >
                 {channel.isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                {!channel.isActive && "Aktife al"}
               </button>
               <button
                 onClick={(e) => {
