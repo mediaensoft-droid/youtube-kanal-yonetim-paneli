@@ -20,21 +20,24 @@ export function StaffSignInForm() {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
-    const res = await signIn("staff", { username, password, redirect: false });
-    setSubmitting(false);
-    if (res?.error) {
-      // NextAuth flattens authorize() errors to a code; map the two we throw, default to the generic copy.
-      setError(
-        res.code === "DISABLED"
-          ? "Hesabınız pasif, yöneticinize başvurun"
-          : res.code === "NO_ACCESS"
-            ? "Çalışma alanının üyeliği sona ermiş. Yöneticinize başvurun."
-            : "Kullanıcı adı veya şifre hatalı"
-      );
-      return;
+    try {
+      const res = await signIn("staff", { username, password, redirect: false });
+      if (!res || res.error) {
+        // NextAuth flattens authorize() errors to a code; map the two we throw, default to the generic copy.
+        setError(
+          res?.code === "DISABLED"
+            ? "Hesabınız pasif, yöneticinize başvurun"
+            : res?.code === "NO_ACCESS"
+              ? "Çalışma alanının üyeliği sona ermiş. Yöneticinize başvurun."
+              : "Kullanıcı adı veya şifre hatalı"
+        );
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
-    router.push("/");
-    router.refresh();
   }
 
   if (!open) {
@@ -48,8 +51,8 @@ export function StaffSignInForm() {
   return (
     <form onSubmit={handleSubmit} className="animate-scale-in mt-2 w-full max-w-sm space-y-3 rounded-lg border border-line bg-surface p-4">
       <p className="text-sm font-medium text-ink">Personel girişi</p>
-      <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Kullanıcı adı" autoComplete="username" required />
-      <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Şifre" autoComplete="current-password" required />
+      <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Kullanıcı adı" autoComplete="username" aria-label="Kullanıcı adı" required />
+      <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Şifre" autoComplete="current-password" aria-label="Şifre" required />
       {error && <p className="text-sm text-red-400">{error}</p>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(false)}>Vazgeç</Button>

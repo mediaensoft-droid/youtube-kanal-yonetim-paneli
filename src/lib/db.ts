@@ -213,6 +213,9 @@ async function bootstrapSchema(): Promise<void> {
     )
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_members_userId ON members(userId)`);
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_members_owner ON members(userId) WHERE role = 'yonetici'`
+  );
   // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
   await db.execute(`
     INSERT INTO members (userId, role, displayName)

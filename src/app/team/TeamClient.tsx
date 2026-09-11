@@ -28,7 +28,7 @@ const STATUS_LABELS: Record<MemberStatus, string> = {
   disabled: "Pasif",
 };
 
-const ROLE_HINT = "Rol değişikliği personel yeniden giriş yapınca geçerli olur.";
+const ROLE_HINT = "Rol ve durum değişiklikleri hemen geçerli olur.";
 
 export function TeamClient({ initialMembers }: TeamClientProps) {
   const [members, setMembers] = useState<Member[]>(initialMembers);
@@ -89,7 +89,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
   function startEdit(member: Member) {
     setEditId(member.id);
     setEditDisplayName(member.displayName);
-    setEditRole(member.role as MemberRole);
+    setEditRole(member.role);
     setPasswordId(null);
   }
 
@@ -127,7 +127,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: passwordValue }),
       });
-      if (!res.ok && res.status !== 204) {
+      if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Şifre güncellenemedi");
       }
@@ -272,7 +272,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
                           <p className="text-xs text-ink-faint">{ROLE_HINT}</p>
                         </div>
                       ) : (
-                        <CategoryBadge name={ROLE_LABELS[member.role]} color={ROLE_COLORS[member.role as MemberRole]} />
+                        <CategoryBadge name={ROLE_LABELS[member.role]} color={ROLE_COLORS[member.role]} />
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-ink-muted">{STATUS_LABELS[member.status]}</td>
