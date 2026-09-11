@@ -3,20 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { Tv, EyeOff, Layers, Lightbulb } from "lucide-react";
+import { Tv, EyeOff, Layers, Lightbulb, Telescope } from "lucide-react";
 
 interface ChannelsTabsProps {
   passiveCount: number;
+  plannedCount: number;
 }
 
 // Sub-navigation of the Kanallar hub. Categories and concepts used to be top-level nav items; they
 // only exist to organise channels, so they live here now alongside the passive-channel list.
-export function ChannelsTabs({ passiveCount }: ChannelsTabsProps) {
+export function ChannelsTabs({ passiveCount, plannedCount }: ChannelsTabsProps) {
   const pathname = usePathname();
 
   const tabs = [
     { href: "/channels", label: "Kanallar", icon: Tv, badge: null },
     { href: "/channels/passive", label: "Pasif Kanallar", icon: EyeOff, badge: passiveCount || null },
+    { href: "/channels/planned", label: "Planlanan Kanallar", icon: Telescope, badge: plannedCount || null },
     { href: "/channels/categories", label: "Kategoriler", icon: Layers, badge: null },
     { href: "/channels/concepts", label: "Konseptler", icon: Lightbulb, badge: null },
   ];

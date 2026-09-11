@@ -12,6 +12,15 @@ export interface Concept {
   createdAt: string;
 }
 
+/**
+ * active  — the user's own channel, shown everywhere.
+ * passive — the user's own channel, parked: hidden from calendar/dashboard/counts.
+ * planned — a reference channel the user tracks as an example; never counted as their own.
+ */
+export type ChannelStatus = "active" | "passive" | "planned";
+
+export type ChannelStatusFilter = ChannelStatus | "all";
+
 export interface Channel {
   id: number;
   youtubeId: string;
@@ -28,13 +37,12 @@ export interface Channel {
   notes: string | null;
   publishDays: number[];
   publishTime: string | null;
-  isActive: boolean;
+  status: ChannelStatus;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export type ChannelStatusFilter = "active" | "passive" | "all";
 
 export interface ChannelFilters {
   /** Defaults to "active" — passive channels only show up where explicitly requested. */

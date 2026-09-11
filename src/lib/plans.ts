@@ -5,6 +5,8 @@ export interface PlanDefinition {
   name: string;
   priceTRY: number | null;
   channelLimit: number | null;
+  /** Separate allowance for planned (reference) channels — they never eat into channelLimit. */
+  plannedChannelLimit: number | null;
   description: string;
   features: string[];
 }
@@ -15,32 +17,36 @@ export const PLANS: PlanDefinition[] = [
     name: "Free",
     priceTRY: null,
     channelLimit: 10,
+    plannedChannelLimit: 10,
     description: "7 gün, Standart plan limitleriyle ücretsiz deneme",
-    features: ["10 kanala kadar ekleme", "Tüm dashboard ve trend özellikleri", "7 gün süreyle"],
+    features: ["10 kanala kadar ekleme", "10 planlanan (referans) kanal", "7 gün süreyle"],
   },
   {
     id: "standart",
     name: "Standart",
     priceTRY: 149,
     channelLimit: 10,
+    plannedChannelLimit: 10,
     description: "Az sayıda kanal yöneten bireysel kullanıcılar için",
-    features: ["10 kanala kadar ekleme", "Günlük otomatik yenileme", "Kategori/konsept yönetimi"],
+    features: ["10 kanala kadar ekleme", "10 planlanan (referans) kanal", "Günlük otomatik yenileme"],
   },
   {
     id: "pro",
     name: "Pro",
     priceTRY: 299,
     channelLimit: 25,
+    plannedChannelLimit: 25,
     description: "Büyüyen kanal portföyleri için",
-    features: ["25 kanala kadar ekleme", "Günlük otomatik yenileme", "Öncelikli destek"],
+    features: ["25 kanala kadar ekleme", "25 planlanan (referans) kanal", "Öncelikli destek"],
   },
   {
     id: "ultra",
     name: "Ultra",
     priceTRY: 599,
     channelLimit: null,
+    plannedChannelLimit: null,
     description: "Ajanslar ve büyük ölçekli operasyonlar için",
-    features: ["Sınırsız kanal ekleme", "Günlük otomatik yenileme", "Öncelikli destek"],
+    features: ["Sınırsız kanal ekleme", "Sınırsız planlanan kanal", "Öncelikli destek"],
   },
 ];
 

@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { getSubscriptionByUserId } from "@/lib/db/subscriptions";
-import { hasActiveAccess, getChannelLimit } from "@/lib/access";
-import { countChannelsForUser } from "@/lib/db/channels";
+import { hasActiveAccess, getChannelLimit, getPlannedChannelLimit } from "@/lib/access";
+import { countChannelsForUser, countPlannedChannelsForUser } from "@/lib/db/channels";
 import { formatDate } from "@/lib/format";
 import { getPlan, type PlanId } from "@/lib/plans";
 import { PricingTable } from "@/components/billing/PricingTable";
@@ -27,12 +27,15 @@ export default async function BillingPage({ searchParams }: PageProps) {
 
   const { status } = await searchParams;
 
-  const [subscription, active, channelLimit, channelCount] = await Promise.all([
-    getSubscriptionByUserId(userId),
-    hasActiveAccess(userId),
-    getChannelLimit(userId),
-    countChannelsForUser(userId),
-  ]);
+  const [subscription, active, channelLimit, channelCount, plannedLimit, plannedCount] =
+    await Promise.all([
+      getSubscriptionByUserId(userId),
+      hasActiveAccess(userId),
+      getChannelLimit(userId),
+      countChannelsForUser(userId),
+      getPlannedChannelLimit(userId),
+      countPlannedChannelsForUser(userId),
+    ]);
 
   const currentPlanId: PlanId =
     subscription?.status === "active" &&
@@ -78,6 +81,10 @@ export default async function BillingPage({ searchParams }: PageProps) {
         <p className="mt-2 text-sm text-ink-muted">
           Kanal kullanımı: {channelCount}
           {channelLimit !== null ? ` / ${channelLimit}` : " (sınırsız)"}
+        </p>
+        <p className="mt-1 text-sm text-ink-muted">
+          Planlanan kanal kullanımı: {plannedCount}
+          {plannedLimit !== null ? ` / ${plannedLimit}` : " (sınırsız)"}
         </p>
         {!active && (
           <p className="mt-2 text-sm text-ink-muted">

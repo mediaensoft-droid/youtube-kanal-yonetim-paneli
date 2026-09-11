@@ -61,21 +61,25 @@ export function ChannelCard({ channel, categories, concepts, onRefreshed, onDele
     }
   }
 
+  const isActive = channel.status === "active";
+  // Planned (reference) channels aren't the user's own, so parking them makes no sense.
+  const canToggle = channel.status !== "planned";
+
   async function handleToggleActive() {
-    const nextActive = !channel.isActive;
+    const nextStatus = isActive ? "passive" : "active";
     setToggling(true);
     try {
       const res = await fetch(`/api/channels/${channel.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: nextActive }),
+        body: JSON.stringify({ status: nextStatus }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "İşlem başarısız oldu");
       onStatusChanged(channel.id);
       // Calendar/dashboard/category counts all derive from the active set — refresh their server data.
       router.refresh();
-      toast.success(nextActive ? "Kanal aktife alındı" : "Kanal pasife alındı");
+      toast.success(nextStatus === "active" ? "Kanal aktife alındı" : "Kanal pasife alındı");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "İşlem başarısız oldu");
     } finally {
@@ -87,7 +91,7 @@ export function ChannelCard({ channel, categories, concepts, onRefreshed, onDele
   // Reactivating is harmless (nothing is hidden or lost), so only the passive direction asks first.
   function handleToggleClick(e: React.MouseEvent) {
     e.stopPropagation();
-    if (channel.isActive) setPassiveConfirmOpen(true);
+    if (isActive) setPassiveConfirmOpen(true);
     else void handleToggleActive();
   }
 
@@ -221,18 +225,20 @@ export function ChannelCard({ channel, categories, concepts, onRefreshed, onDele
               >
                 <Pencil className="h-3.5 w-3.5" />
               </Link>
-              <button
-                onClick={handleToggleClick}
-                disabled={toggling}
-                title={channel.isActive ? "Pasife al" : "Aktife al"}
-                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-150 disabled:opacity-50 ${
-                  channel.isActive
-                    ? "text-ink-muted hover:bg-surface-hover hover:text-ink"
-                    : "text-emerald-400 hover:bg-emerald-950/40"
-                }`}
-              >
-                {channel.isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              </button>
+              {canToggle && (
+                <button
+                  onClick={handleToggleClick}
+                  disabled={toggling}
+                  title={isActive ? "Pasife al" : "Aktife al"}
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-150 disabled:opacity-50 ${
+                    isActive
+                      ? "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                      : "text-emerald-400 hover:bg-emerald-950/40"
+                  }`}
+                >
+                  {isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();

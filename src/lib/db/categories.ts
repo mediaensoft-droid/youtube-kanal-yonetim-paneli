@@ -85,7 +85,7 @@ export async function countChannelsByCategory(userId: number): Promise<Record<nu
   const rows = await all<{ categoryId: number; count: number }>(
     `SELECT je.value AS categoryId, COUNT(*) as count
        FROM channels, json_each(channels.categoryIds) AS je
-      WHERE channels.userId = ? AND channels.isActive = 1
+      WHERE channels.userId = ? AND channels.status = 'active'
       GROUP BY je.value`,
     [userId]
   );

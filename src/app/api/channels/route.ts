@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
-import { hasActiveAccess, getChannelLimit } from "@/lib/access";
+import { hasActiveAccess, getChannelLimit, getPlannedChannelLimit } from "@/lib/access";
 import { createChannelSchema } from "@/lib/validation";
 import {
   listChannels,
   getChannelByYoutubeId,
   createChannel,
   countChannelsForUser,
+  countPlannedChannelsForUser,
 } from "@/lib/db/channels";
 import { createSnapshot } from "@/lib/db/snapshots";
 import {
@@ -51,17 +52,6 @@ export async function POST(req: NextRequest) {
     return errorResponse(402, "Deneme süreniz doldu. Devam etmek için üyeliğinizi başlatın.");
   }
 
-  const channelLimit = await getChannelLimit(userId);
-  if (channelLimit !== null) {
-    const currentCount = await countChannelsForUser(userId);
-    if (currentCount >= channelLimit) {
-      return errorResponse(
-        402,
-        `Plan kanal limitinize ulaştınız (${currentCount}/${channelLimit}). Daha fazla kanal eklemek için planınızı yükseltin.`
-      );
-    }
-  }
-
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     return errorResponse(500, "YOUTUBE_API_KEY tanımlı değil. .env.local dosyasını kontrol edin.");
@@ -73,6 +63,32 @@ export async function POST(req: NextRequest) {
     return errorResponse(400, parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
   const { input, categoryIds, conceptIds, languages, countries, notes } = parsed.data;
+  const status = parsed.data.status ?? "active";
+
+  // Own channels and planned (reference) channels draw from separate plan allowances.
+  if (status === "planned") {
+    const plannedLimit = await getPlannedChannelLimit(userId);
+    if (plannedLimit !== null) {
+      const currentCount = await countPlannedChannelsForUser(userId);
+      if (currentCount >= plannedLimit) {
+        return errorResponse(
+          402,
+          `Planlanan kanal limitinize ulaştınız (${currentCount}/${plannedLimit}). Daha fazla planlanan kanal eklemek için planınızı yükseltin.`
+        );
+      }
+    }
+  } else {
+    const channelLimit = await getChannelLimit(userId);
+    if (channelLimit !== null) {
+      const currentCount = await countChannelsForUser(userId);
+      if (currentCount >= channelLimit) {
+        return errorResponse(
+          402,
+          `Plan kanal limitinize ulaştınız (${currentCount}/${channelLimit}). Daha fazla kanal eklemek için planınızı yükseltin.`
+        );
+      }
+    }
+  }
 
   try {
     const channelId = await resolveToChannelId(input, apiKey);
@@ -97,6 +113,7 @@ export async function POST(req: NextRequest) {
       languages: languages ?? [],
       countries: countries ?? [],
       notes: notes ?? null,
+      status,
     });
 
     await createSnapshot(channel.id, {

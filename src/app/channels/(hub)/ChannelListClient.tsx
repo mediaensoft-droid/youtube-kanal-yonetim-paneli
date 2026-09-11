@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, LayoutGrid, Grid3x3, List } from "lucide-react";
 import clsx from "clsx";
-import type { Category, Concept, Channel } from "@/types";
+import type { Category, Concept, Channel, ChannelStatus } from "@/types";
 import { ChannelCard } from "@/components/ChannelCard";
 import { ChannelListRow } from "@/components/ChannelListRow";
 import { Input } from "@/components/ui/Input";
@@ -15,8 +15,8 @@ interface ChannelListClientProps {
   initialChannels: Channel[];
   categories: Category[];
   concepts: Concept[];
-  /** Which half of the user's channels this screen shows; the other half lives on the sibling tab. */
-  status: "active" | "passive";
+  /** Which status this tab lists; each status has its own tab in the hub. */
+  status: ChannelStatus;
 }
 
 type ViewMode = "large" | "small" | "list";
@@ -81,6 +81,7 @@ export function ChannelListClient({
   status,
 }: ChannelListClientProps) {
   const isPassiveScreen = status === "passive";
+  const isPlannedScreen = status === "planned";
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [filters, setFilters] = useState<StoredFilters>(EMPTY_FILTERS);
   const { search, categoryFilter, conceptFilter, languageFilter, countryFilter } = filters;
@@ -172,6 +173,12 @@ export function ChannelListClient({
           alabilirsin.
         </p>
       )}
+      {isPlannedScreen && (
+        <p className="mb-4 text-sm text-ink-muted">
+          Örnek/referans olarak takip ettiğin kanallar. İstatistikleri günlük güncellenir; takvimde,
+          Dashboard&apos;da ve kendi kanal limitinde yer almazlar.
+        </p>
+      )}
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative">
@@ -249,7 +256,9 @@ export function ChannelListClient({
           {channels.length === 0
             ? isPassiveScreen
               ? "Pasif kanal yok."
-              : "Henüz kanal eklenmedi."
+              : isPlannedScreen
+                ? "Henüz planlanan kanal eklenmedi."
+                : "Henüz kanal eklenmedi."
             : "Filtrelerle eşleşen kanal bulunamadı."}
         </div>
       ) : viewMode === "list" ? (

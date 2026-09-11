@@ -32,24 +32,37 @@ export async function hasActiveAccess(userId: number): Promise<boolean> {
  * subscription are handled by hasActiveAccess() already; this only decides the cap while access
  * is granted, so a lapsed user (limit 0 here) never reaches this without failing that check first.
  */
-export async function getChannelLimit(userId: number): Promise<number | null> {
+// Resolves the plan tier the limits should be read from: null = unlimited (owner account),
+// undefined = no usable subscription (limit 0).
+async function resolveLimitPlan(userId: number): Promise<PlanId | null | undefined> {
   const user = await getUserById(userId);
   if (user && process.env.OWNER_EMAIL && user.email === process.env.OWNER_EMAIL) {
     return null;
   }
 
   const sub = await getSubscriptionByUserId(userId);
-  if (!sub) return 0;
+  if (!sub) return undefined;
 
-  if (sub.status === "trialing") {
-    return getPlan("free").channelLimit;
-  }
+  if (sub.status === "trialing") return "free";
   if (sub.status === "active") {
-    const planId = (["standart", "pro", "ultra"] as PlanId[]).includes(sub.plan as PlanId)
+    return (["standart", "pro", "ultra"] as PlanId[]).includes(sub.plan as PlanId)
       ? (sub.plan as PlanId)
       : "standart";
-    return getPlan(planId).channelLimit;
   }
-  return 0;
+  return undefined;
+}
+
+export async function getChannelLimit(userId: number): Promise<number | null> {
+  const plan = await resolveLimitPlan(userId);
+  if (plan === null) return null;
+  if (plan === undefined) return 0;
+  return getPlan(plan).channelLimit;
+}
+
+export async function getPlannedChannelLimit(userId: number): Promise<number | null> {
+  const plan = await resolveLimitPlan(userId);
+  if (plan === null) return null;
+  if (plan === undefined) return 0;
+  return getPlan(plan).plannedChannelLimit;
 }
 

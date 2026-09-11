@@ -6,6 +6,8 @@ const idList = z.array(z.number().int().positive()).optional();
 
 export const createChannelSchema = z.object({
   input: z.string().trim().min(1, "YouTube URL veya kanal ID'si gerekli"),
+  // New channels start either as the user's own (active) or as a planned reference channel.
+  status: z.enum(["active", "planned"]).optional(),
   categoryIds: idList,
   conceptIds: idList,
   languages: z.array(z.string()).optional(),
@@ -26,7 +28,7 @@ export const updateChannelSchema = z.object({
     .nullable()
     .optional(),
   url: z.string().trim().min(1).optional(),
-  isActive: z.boolean().optional(),
+  status: z.enum(["active", "passive", "planned"]).optional(),
 });
 
 export const createCategorySchema = z.object({

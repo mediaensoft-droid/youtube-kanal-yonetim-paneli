@@ -25,9 +25,20 @@ interface ChannelFormProps {
   categories: Category[];
   concepts: Concept[];
   initialChannel?: Channel;
+  /** Create mode only: which list the new channel lands in. Defaults to the user's own (active). */
+  createStatus?: "active" | "planned";
 }
 
-export function ChannelForm({ mode, categories, concepts, initialChannel }: ChannelFormProps) {
+export function ChannelForm({
+  mode,
+  categories,
+  concepts,
+  initialChannel,
+  createStatus = "active",
+}: ChannelFormProps) {
+  // Planned (reference) channels never appear on the calendar, so publish days are meaningless for them.
+  const isPlanned = mode === "create" ? createStatus === "planned" : initialChannel?.status === "planned";
+  const listHref = isPlanned ? "/channels/planned" : "/channels";
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +74,7 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input,
+            status: createStatus,
             categoryIds: categoryIds.map(Number),
             conceptIds: conceptIds.map(Number),
             languages,
@@ -73,7 +85,7 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Kanal eklenemedi");
         toast.success(`${data.name} eklendi`);
-        router.push("/channels");
+        router.push(listHref);
         router.refresh();
       } else {
         const res = await fetch(`/api/channels/${initialChannel!.id}`, {
@@ -91,7 +103,7 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? "Kanal güncellenemedi");
         toast.success("Kanal güncellendi");
-        router.push("/channels");
+        router.push(listHref);
         router.refresh();
       }
     } catch (err) {
@@ -179,7 +191,7 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
         />
       </div>
 
-      {mode === "edit" && (
+      {mode === "edit" && !isPlanned && (
         <div>
           <label className="mb-1 block text-sm font-medium text-ink">Yayın Günleri</label>
           <div className="flex flex-wrap gap-1.5">
@@ -216,11 +228,11 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="secondary" onClick={() => router.push("/channels")}>
+        <Button type="button" variant="secondary" onClick={() => router.push(listHref)}>
           Vazgeç
         </Button>
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Kaydediliyor..." : mode === "create" ? "Kanalı Ekle" : "Kaydet"}
+          {submitting ? "Kaydediliyor..." : mode === "create" ? (isPlanned ? "Planlanan Kanalı Ekle" : "Kanalı Ekle") : "Kaydet"}
         </Button>
       </div>
     </form>

@@ -5,7 +5,7 @@ import { updateChannelSchema } from "@/lib/validation";
 import {
   getChannelById,
   updateChannelManualFields,
-  setChannelActive,
+  setChannelStatus,
   deleteChannel,
 } from "@/lib/db/channels";
 
@@ -40,10 +40,10 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     return errorResponse(400, parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
 
-  const { isActive, ...manualFields } = parsed.data;
+  const { status, ...manualFields } = parsed.data;
   let channel = await updateChannelManualFields(userId, channelId, manualFields);
-  if (isActive !== undefined && isActive !== existing.isActive) {
-    channel = await setChannelActive(userId, channelId, isActive);
+  if (status !== undefined && status !== existing.status) {
+    channel = await setChannelStatus(userId, channelId, status);
   }
   return okResponse(channel);
 }
