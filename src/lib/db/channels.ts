@@ -19,6 +19,9 @@ interface ChannelRow {
   publishDays: string;
   publishTime: string | null;
   status: ChannelStatus;
+  createdByMemberId: number | null;
+  statusChangedByMemberId: number | null;
+  statusChangedAt: string | null;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +49,9 @@ function rowToChannel(row: ChannelRow): Channel {
     publishDays: JSON.parse(row.publishDays) as number[],
     publishTime: row.publishTime,
     status: row.status,
+    createdByMemberId: row.createdByMemberId,
+    statusChangedByMemberId: row.statusChangedByMemberId,
+    statusChangedAt: row.statusChangedAt,
     lastRefreshedAt: row.lastRefreshedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -182,13 +188,14 @@ export interface CreateChannelRecord {
   countries: string[];
   notes: string | null;
   status: ChannelStatus;
+  createdByMemberId: number;
 }
 
 export async function createChannel(userId: number, input: CreateChannelRecord): Promise<Channel> {
   const result = await run(
     `INSERT INTO channels
-      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryIds, conceptIds, languages, countries, notes, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryIds, conceptIds, languages, countries, notes, status, createdByMemberId)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       input.youtubeId,
@@ -204,6 +211,7 @@ export async function createChannel(userId: number, input: CreateChannelRecord):
       JSON.stringify(input.countries),
       input.notes,
       input.status,
+      input.createdByMemberId,
     ]
   );
   return (await getChannelById(userId, result.lastInsertRowid))!;
@@ -283,10 +291,18 @@ export async function updateChannelYouTubeData(
   return (await getChannelById(userId, id))!;
 }
 
-export async function setChannelStatus(userId: number, id: number, status: ChannelStatus): Promise<Channel> {
+export async function setChannelStatus(
+  userId: number,
+  id: number,
+  status: ChannelStatus,
+  changedByMemberId: number
+): Promise<Channel> {
   await run(
-    `UPDATE channels SET status = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND userId = ?`,
-    [status, id, userId]
+    `UPDATE channels
+        SET status = ?, statusChangedByMemberId = ?, statusChangedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now'),
+            updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+      WHERE id = ? AND userId = ?`,
+    [status, changedByMemberId, id, userId]
   );
   return (await getChannelById(userId, id))!;
 }

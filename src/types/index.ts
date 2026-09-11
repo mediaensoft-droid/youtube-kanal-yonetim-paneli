@@ -38,6 +38,9 @@ export interface Channel {
   publishDays: number[];
   publishTime: string | null;
   status: ChannelStatus;
+  createdByMemberId: number | null;
+  statusChangedByMemberId: number | null;
+  statusChangedAt: string | null;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;

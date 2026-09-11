@@ -73,6 +73,9 @@ async function bootstrapSchema(): Promise<void> {
       categoryIds      TEXT NOT NULL DEFAULT '[]',
       conceptIds       TEXT NOT NULL DEFAULT '[]',
       status           TEXT NOT NULL DEFAULT 'active',
+      createdByMemberId        INTEGER,
+      statusChangedByMemberId  INTEGER,
+      statusChangedAt          TEXT,
       lastRefreshedAt  TEXT,
       createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -157,6 +160,54 @@ async function bootstrapSchema(): Promise<void> {
     await db.execute(`UPDATE channels SET status = 'passive' WHERE isActive = 0 AND status = 'active'`);
   }
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_userId_status ON channels(userId, status)`);
+
+  // Members: every actor in a workspace, the owner included (role 'yonetici', no credentials).
+  // Staff rows carry a globally-unique username + bcrypt hash and sign in via Credentials.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS members (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role         TEXT NOT NULL DEFAULT 'goruntuleyici',
+      displayName  TEXT NOT NULL,
+      username     TEXT UNIQUE,
+      passwordHash TEXT,
+      status       TEXT NOT NULL DEFAULT 'active',
+      lastLoginAt  TEXT,
+      createdAt    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_members_userId ON members(userId)`);
+  // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
+  await db.execute(`
+    INSERT INTO members (userId, role, displayName)
+    SELECT u.id, 'yonetici', COALESCE(NULLIF(u.name, ''), u.email)
+      FROM users u
+     WHERE NOT EXISTS (SELECT 1 FROM members m WHERE m.userId = u.id AND m.role = 'yonetici')
+  `);
+
+  // Who added a channel / who last changed its status. Pre-existing channels are attributed to the
+  // workspace owner (the only possible actor before staff accounts existed).
+  const hasCreatedBy = tableInfo.rows.some((row) => row.name === "createdByMemberId");
+  if (!hasCreatedBy) {
+    for (const ddl of [
+      `ALTER TABLE channels ADD COLUMN createdByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL`,
+      `ALTER TABLE channels ADD COLUMN statusChangedByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL`,
+      `ALTER TABLE channels ADD COLUMN statusChangedAt TEXT`,
+    ]) {
+      try {
+        await db.execute(ddl);
+      } catch (err) {
+        const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+        if (!isDuplicateColumn) throw err;
+      }
+    }
+  }
+  await db.execute(`
+    UPDATE channels
+       SET createdByMemberId = (SELECT m.id FROM members m WHERE m.userId = channels.userId AND m.role = 'yonetici')
+     WHERE createdByMemberId IS NULL
+  `);
 
   // A channel can now belong to several categories/concepts. `categoryIds`/`conceptIds` are JSON
   // arrays (same shape as languages/countries); the legacy single-value `categoryId`/`conceptId`
@@ -302,6 +353,9 @@ async function bootstrapSchema(): Promise<void> {
           categoryIds      TEXT NOT NULL DEFAULT '[]',
           conceptIds       TEXT NOT NULL DEFAULT '[]',
           status           TEXT NOT NULL DEFAULT 'active',
+          createdByMemberId        INTEGER,
+          statusChangedByMemberId  INTEGER,
+          statusChangedAt          TEXT,
           lastRefreshedAt  TEXT,
           createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
           updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -310,10 +364,12 @@ async function bootstrapSchema(): Promise<void> {
         INSERT INTO channels_new
           (id, userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
            categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
-           categoryIds, conceptIds, status, lastRefreshedAt, createdAt, updatedAt)
+           categoryIds, conceptIds, status, createdByMemberId, statusChangedByMemberId, statusChangedAt,
+           lastRefreshedAt, createdAt, updatedAt)
         SELECT id, NULL, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
                categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
-               categoryIds, conceptIds, status, lastRefreshedAt, createdAt, updatedAt
+               categoryIds, conceptIds, status, createdByMemberId, statusChangedByMemberId, statusChangedAt,
+               lastRefreshedAt, createdAt, updatedAt
         FROM channels;
         DROP TABLE channels;
         ALTER TABLE channels_new RENAME TO channels;
