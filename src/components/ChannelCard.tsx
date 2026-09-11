@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
 import { ChannelTagBadges } from "@/components/ChannelTagBadges";
+import { ChannelAiToolLogos } from "@/components/ChannelAiToolLogos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
 import { ChannelPassiveWarning } from "@/components/ChannelPassiveWarning";
@@ -177,6 +178,12 @@ export function ChannelCard({ channel, categories, concepts, onRefreshed, onDele
                   {countryFlagEmoji(code)} {getCountryName(code)}
                 </span>
               ))}
+            </div>
+          )}
+
+          {channel.aiTools.length > 0 && (
+            <div className="mt-2">
+              <ChannelAiToolLogos toolIds={channel.aiTools} />
             </div>
           )}
 

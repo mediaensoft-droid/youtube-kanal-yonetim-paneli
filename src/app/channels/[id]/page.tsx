@@ -13,6 +13,7 @@ import { formatCompactNumber, formatDate } from "@/lib/format";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
+import { getAiTool, toolLogoUrl, AI_TOOL_CATEGORIES } from "@/lib/aiTools";
 import { ChannelDetailsClient } from "./ChannelDetailsClient";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,9 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 
   const subscriberTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.subscriberCount }));
   const viewTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.viewCount }));
+
+  const aiToolCategoryLabel = new Map(AI_TOOL_CATEGORIES.map((c) => [c.id, c.label]));
+  const aiTools = channel.aiTools.flatMap((id) => getAiTool(id) ?? []);
 
   return (
     <div className="animate-fade-in-up">
@@ -148,6 +152,34 @@ export default async function ChannelDetailPage({ params }: PageProps) {
           <TrendChart data={viewTrend} color="#2DD4BF" />
         </div>
       </div>
+
+      {aiTools.length > 0 && (
+        <div className="mt-6 rounded-lg border border-line bg-surface p-5">
+          <h2 className="mb-3 text-sm font-semibold text-ink-muted">Yapay Zeka Araçları</h2>
+          <div className="flex flex-wrap gap-2">
+            {aiTools.map((tool) => (
+              <a
+                key={tool.id}
+                href={tool.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-sm text-ink transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={toolLogoUrl(tool)}
+                  alt=""
+                  className="h-5 w-5 shrink-0 rounded-sm object-contain"
+                />
+                <span>{tool.name}</span>
+                <span className="rounded bg-surface-hover px-1.5 py-0.5 text-[11px] text-ink-faint">
+                  {aiToolCategoryLabel.get(tool.category) ?? tool.category}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <ChannelDetailsClient channelId={channel.id} />
     </div>

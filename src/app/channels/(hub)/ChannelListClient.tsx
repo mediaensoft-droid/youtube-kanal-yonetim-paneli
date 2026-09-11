@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
+import { AI_TOOL_CATEGORIES, AI_TOOLS } from "@/lib/aiTools";
 
 interface ChannelListClientProps {
   initialChannels: Channel[];
@@ -33,6 +34,7 @@ interface StoredFilters {
   conceptFilter: string;
   languageFilter: string;
   countryFilter: string;
+  aiToolFilter: string;
 }
 
 const EMPTY_FILTERS: StoredFilters = {
@@ -41,6 +43,7 @@ const EMPTY_FILTERS: StoredFilters = {
   conceptFilter: "",
   languageFilter: "",
   countryFilter: "",
+  aiToolFilter: "",
 };
 
 function readStoredFilters(key: string): StoredFilters | null {
@@ -54,6 +57,7 @@ function readStoredFilters(key: string): StoredFilters | null {
       conceptFilter: typeof parsed.conceptFilter === "string" ? parsed.conceptFilter : "",
       languageFilter: typeof parsed.languageFilter === "string" ? parsed.languageFilter : "",
       countryFilter: typeof parsed.countryFilter === "string" ? parsed.countryFilter : "",
+      aiToolFilter: typeof parsed.aiToolFilter === "string" ? parsed.aiToolFilter : "",
     };
   } catch {
     return null;
@@ -84,7 +88,7 @@ export function ChannelListClient({
   const isPlannedScreen = status === "planned";
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [filters, setFilters] = useState<StoredFilters>(EMPTY_FILTERS);
-  const { search, categoryFilter, conceptFilter, languageFilter, countryFilter } = filters;
+  const { search, categoryFilter, conceptFilter, languageFilter, countryFilter, aiToolFilter } = filters;
   // Active and passive screens remember their filters independently.
   const filterStorageKey = FILTER_STORAGE_PREFIX + status;
   // The list is hidden until stored filters are restored, so a filtered view doesn't flash unfiltered.
@@ -148,9 +152,10 @@ export function ChannelListClient({
       if (conceptFilter && !c.conceptIds.includes(Number(conceptFilter))) return false;
       if (languageFilter && !c.languages.includes(languageFilter)) return false;
       if (countryFilter && !c.countries.includes(countryFilter)) return false;
+      if (aiToolFilter && !c.aiTools.includes(aiToolFilter)) return false;
       return true;
     });
-  }, [channels, search, categoryFilter, conceptFilter, languageFilter, countryFilter]);
+  }, [channels, search, categoryFilter, conceptFilter, languageFilter, countryFilter, aiToolFilter]);
 
   function handleRefreshed(updated: Channel) {
     setChannels((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
@@ -180,7 +185,7 @@ export function ChannelListClient({
         </p>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 2xl:max-w-5xl">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6 2xl:max-w-6xl">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
           <Input
@@ -225,6 +230,23 @@ export function ChannelListClient({
               {countryFlagEmoji(code)} {getCountryName(code)}
             </option>
           ))}
+        </Select>
+
+        <Select value={aiToolFilter} onChange={(e) => updateFilter("aiToolFilter", e.target.value)}>
+          <option value="">Tüm araçlar</option>
+          {AI_TOOL_CATEGORIES.map((cat) => {
+            const toolsInCategory = AI_TOOLS.filter((t) => t.category === cat.id);
+            if (toolsInCategory.length === 0) return null;
+            return (
+              <optgroup key={cat.id} label={cat.label}>
+                {toolsInCategory.map((tool) => (
+                  <option key={tool.id} value={tool.id}>
+                    {tool.name}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
         </Select>
       </div>
 
