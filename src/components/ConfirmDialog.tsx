@@ -1,12 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/Button";
 
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  description?: string;
+  description?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
@@ -35,7 +36,7 @@ export function ConfirmDialog({
     <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
       <div className="animate-scale-in w-full max-w-sm rounded-lg border border-line-strong bg-surface-2 p-5 shadow-2xl shadow-black/50">
         <h3 className="text-base font-semibold text-ink">{title}</h3>
-        {description && <p className="mt-2 text-sm text-ink-muted">{description}</p>}
+        {description && <div className="mt-2 text-sm text-ink-muted">{description}</div>}
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={onCancel}>
             {cancelLabel}

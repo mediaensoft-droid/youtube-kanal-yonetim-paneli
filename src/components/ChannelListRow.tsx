@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { RefreshCw, Pencil, Trash2, BarChart3, Settings2, ListVideo, Users, Video } from "lucide-react";
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
@@ -21,6 +23,7 @@ interface ChannelListRowProps {
 }
 
 export function ChannelListRow({ channel, category, concept, onRefreshed, onDeleted }: ChannelListRowProps) {
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -50,6 +53,9 @@ export function ChannelListRow({ channel, category, concept, onRefreshed, onDele
         throw new Error(data.error ?? "Silme başarısız oldu");
       }
       onDeleted(channel.id);
+      // Other pages (calendar, dashboard, category/concept counts) render this channel from their own
+      // server data; refresh so the same-session navigation to them doesn't show a stale copy.
+      router.refresh();
       toast.success("Kanal silindi");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Silme başarısız oldu");
@@ -170,7 +176,7 @@ export function ChannelListRow({ channel, category, concept, onRefreshed, onDele
       <ConfirmDialog
         open={confirmOpen}
         title="Kanalı sil"
-        description={`"${channel.name}" kalıcı olarak silinecek. Emin misiniz?`}
+        description={<ChannelDeleteWarning channel={channel} />}
         confirmLabel="Sil"
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
