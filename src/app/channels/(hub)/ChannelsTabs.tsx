@@ -24,7 +24,7 @@ export function ChannelsTabs({ passiveCount, plannedCount }: ChannelsTabsProps) 
   ];
 
   return (
-    <div className="mb-6 overflow-x-auto border-b border-line">
+    <div className="mb-6 overflow-x-auto overflow-y-hidden border-b border-line">
       <div className="flex min-w-max items-center gap-1">
         {tabs.map(({ href, label, icon: Icon, badge }) => {
           const active = pathname === href;
