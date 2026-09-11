@@ -106,3 +106,12 @@ export const updateMemberSchema = z.object({
 });
 
 export const setMemberPasswordSchema = z.object({ password: passwordSchema });
+
+export const updateAccountSchema = z.object({
+  displayName: z.string().trim().min(1, "Ad gerekli").max(60),
+});
+
+export const changeOwnPasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Mevcut şifre gerekli"),
+  newPassword: passwordSchema,
+});

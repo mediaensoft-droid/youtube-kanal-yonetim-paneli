@@ -42,6 +42,12 @@ export async function getMemberByUsername(username: string): Promise<MemberRow |
   return get<MemberRow>(`SELECT ${PUBLIC_COLUMNS}, passwordHash FROM members WHERE username = ?`, [username]);
 }
 
+/** Own-password-change lookup — the hash never leaves this call. */
+export async function getMemberPasswordHash(id: number): Promise<string | null> {
+  const row = await get<{ passwordHash: string | null }>(`SELECT passwordHash FROM members WHERE id = ?`, [id]);
+  return row?.passwordHash ?? null;
+}
+
 export async function isUsernameTaken(username: string): Promise<boolean> {
   return Boolean(await get<{ id: number }>(`SELECT id FROM members WHERE username = ?`, [username]));
 }
