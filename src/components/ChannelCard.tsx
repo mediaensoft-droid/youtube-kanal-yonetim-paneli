@@ -209,7 +209,7 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
             </a>
           </div>
 
-          <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-y-1 border-t border-line pt-3">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -218,7 +218,7 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
               Yenile
             </button>
-            <div className="flex items-center gap-1">
+            <div className="mr-2 flex items-center gap-0.5">
               <Link
                 href={`/channels/${channel.id}/edit`}
                 onClick={(e) => e.stopPropagation()}
