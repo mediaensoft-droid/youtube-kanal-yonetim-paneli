@@ -131,6 +131,55 @@ describe("describeActivity", () => {
     ).toBe("adlı personeli aktife aldı");
   });
 
+  it("task.create", () => {
+    const result = describeActivity({ action: "task.create", entityName: "Küçük görev" });
+    expect(result.subject).toBe("Küçük görev");
+    expect(result.text).toBe("görevini oluşturdu");
+  });
+
+  it("task.update lists the changed fields in Turkish", () => {
+    const result = describeActivity({
+      action: "task.update",
+      entityName: "Küçük görev",
+      details: { changedFields: ["title", "priority", "checklist"] },
+    });
+    expect(result.text).toBe("görevini düzenledi (başlık, öncelik, kontrol listesi)");
+  });
+
+  it("task.update with no changed fields still produces a sentence", () => {
+    const result = describeActivity({
+      action: "task.update",
+      entityName: "Küçük görev",
+      details: { changedFields: [] },
+    });
+    expect(result.text).toBe("görevini düzenledi");
+  });
+
+  it("task.move names the destination column", () => {
+    const result = describeActivity({
+      action: "task.move",
+      entityName: "Küçük görev",
+      details: { from: "Yapılacak", to: "Tamamlandı" },
+    });
+    expect(result.text).toBe("görevini Tamamlandı sütununa taşıdı");
+  });
+
+  it("task.complete", () => {
+    expect(describeActivity({ action: "task.complete", entityName: "Küçük görev" }).text).toBe(
+      "görevini tamamladı"
+    );
+  });
+
+  it("task.delete", () => {
+    expect(describeActivity({ action: "task.delete", entityName: "Küçük görev" }).text).toBe("görevini sildi");
+  });
+
+  it("task.comment", () => {
+    expect(describeActivity({ action: "task.comment", entityName: "Küçük görev" }).text).toBe(
+      "görevine yorum yazdı"
+    );
+  });
+
   it("ACTION_LABELS and ACTIVITY_TYPES cover every known action", () => {
     const allActions = Object.values(ACTIVITY_TYPES).flat();
     for (const action of allActions) {
@@ -147,5 +196,15 @@ describe("describeActivity", () => {
     expect(FIELD_LABELS.publishDays).toBe("yayın günleri");
     expect(FIELD_LABELS.publishTime).toBe("yayın saati");
     expect(FIELD_LABELS.url).toBe("URL");
+  });
+
+  it("FIELD_LABELS maps every task.update field", () => {
+    expect(FIELD_LABELS.title).toBe("başlık");
+    expect(FIELD_LABELS.description).toBe("açıklama");
+    expect(FIELD_LABELS.assigneeMemberId).toBe("atanan kişi");
+    expect(FIELD_LABELS.channelId).toBe("kanal");
+    expect(FIELD_LABELS.dueDate).toBe("son tarih");
+    expect(FIELD_LABELS.priority).toBe("öncelik");
+    expect(FIELD_LABELS.checklist).toBe("kontrol listesi");
   });
 });

@@ -115,3 +115,50 @@ export const changeOwnPasswordSchema = z.object({
   currentPassword: z.string().min(1, "Mevcut şifre gerekli"),
   newPassword: passwordSchema,
 });
+
+export const taskColumnSchema = z.object({
+  name: z.string().trim().min(1, "Sütun adı gerekli").max(60, "Sütun adı çok uzun"),
+});
+
+export const updateTaskColumnSchema = z.object({
+  name: z.string().trim().min(1, "Sütun adı gerekli").max(60, "Sütun adı çok uzun").optional(),
+  position: z.number().int().min(0).optional(),
+});
+
+const dateOnlySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli bir tarih girin (YYYY-AA-GG)");
+
+const checklistItemSchema = z.object({
+  id: z.string().trim().min(1).max(40),
+  text: z.string().trim().min(1, "Metin gerekli").max(200),
+  done: z.boolean(),
+});
+
+export const createTaskSchema = z.object({
+  columnId: z.number().int(),
+  title: z.string().trim().min(1, "Başlık gerekli").max(200, "Başlık çok uzun"),
+  description: z.string().max(5000, "Açıklama çok uzun").nullable().optional(),
+  assigneeMemberId: z.number().int().nullable().optional(),
+  channelId: z.number().int().nullable().optional(),
+  dueDate: dateOnlySchema.nullable().optional(),
+  priority: z.enum(["low", "normal", "high"]).default("normal"),
+  checklist: z.array(checklistItemSchema).max(50, "Kontrol listesi çok uzun").optional(),
+});
+
+export const updateTaskSchema = z.object({
+  title: z.string().trim().min(1, "Başlık gerekli").max(200, "Başlık çok uzun").optional(),
+  description: z.string().max(5000, "Açıklama çok uzun").nullable().optional(),
+  assigneeMemberId: z.number().int().nullable().optional(),
+  channelId: z.number().int().nullable().optional(),
+  dueDate: dateOnlySchema.nullable().optional(),
+  priority: z.enum(["low", "normal", "high"]).optional(),
+  checklist: z.array(checklistItemSchema).max(50, "Kontrol listesi çok uzun").optional(),
+});
+
+export const moveTaskSchema = z.object({
+  columnId: z.number().int(),
+  position: z.number().int().min(0),
+});
+
+export const taskCommentSchema = z.object({
+  body: z.string().trim().min(1, "Yorum boş olamaz").max(2000, "Yorum çok uzun"),
+});
