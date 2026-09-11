@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { errorResponse } from "@/lib/http";
-import { getSessionUserId } from "@/lib/auth";
+import { requirePermission, isResponse } from "@/lib/authz";
 import { getScheduleEntryById, deleteScheduleEntry } from "@/lib/db/schedule";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +10,9 @@ interface RouteContext {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
-  const userId = await getSessionUserId();
-  if (!userId) return errorResponse(401, "Unauthorized");
+  const actor = await requirePermission("schedule.write");
+  if (isResponse(actor)) return actor;
+  const userId = actor.workspaceId;
 
   const { id } = await params;
   const entryId = Number(id);

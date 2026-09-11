@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
+import { requirePermission, isResponse } from "@/lib/authz";
 import { updateChannelSchema } from "@/lib/validation";
 import {
   getChannelById,
@@ -26,8 +27,9 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 }
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
-  const userId = await getSessionUserId();
-  if (!userId) return errorResponse(401, "Unauthorized");
+  const actor = await requirePermission("channel.write");
+  if (isResponse(actor)) return actor;
+  const userId = actor.workspaceId;
 
   const { id } = await params;
   const channelId = Number(id);
@@ -43,14 +45,15 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { status, ...manualFields } = parsed.data;
   let channel = await updateChannelManualFields(userId, channelId, manualFields);
   if (status !== undefined && status !== existing.status) {
-    channel = await setChannelStatus(userId, channelId, status);
+    channel = await setChannelStatus(userId, channelId, status, actor.memberId);
   }
   return okResponse(channel);
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteContext) {
-  const userId = await getSessionUserId();
-  if (!userId) return errorResponse(401, "Unauthorized");
+  const actor = await requirePermission("channel.delete");
+  if (isResponse(actor)) return actor;
+  const userId = actor.workspaceId;
 
   const { id } = await params;
   const channelId = Number(id);

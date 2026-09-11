@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { put, del } from "@vercel/blob";
 import { okResponse, errorResponse } from "@/lib/http";
-import { getSessionUserId } from "@/lib/auth";
+import { requirePermission, isResponse } from "@/lib/authz";
 import { getUserById, updateUserProfile } from "@/lib/db/users";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +10,9 @@ const MAX_SIZE = 4 * 1024 * 1024; // 4MB
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 export async function POST(req: NextRequest) {
-  const userId = await getSessionUserId();
-  if (!userId) return errorResponse(401, "Unauthorized");
+  const actor = await requirePermission("billing.view");
+  if (isResponse(actor)) return actor;
+  const userId = actor.workspaceId;
 
   const formData = await req.formData().catch(() => null);
   const file = formData?.get("file");
