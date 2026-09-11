@@ -38,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <BackgroundDecor />
           <Nav />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+          <main className="w-full flex-1 px-4 py-8 sm:px-6 lg:px-8">{children}</main>
           <Toaster theme="dark" richColors position="top-right" />
         </AuthProvider>
       </body>

@@ -114,9 +114,9 @@ export function ChannelForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       {mode === "create" && (
-        <div>
+        <div className="lg:col-span-2">
           <label className="mb-1 block text-sm font-medium text-ink">
             YouTube kanal URL&apos;si veya ID&apos;si
           </label>
@@ -133,7 +133,7 @@ export function ChannelForm({
       )}
 
       {mode === "edit" && initialChannel && (
-        <div className="flex items-center gap-3 rounded-md border border-line bg-surface p-3">
+        <div className="flex items-center gap-3 rounded-md border border-line bg-surface p-3 lg:col-span-2">
           <a href={initialChannel.url} target="_blank" rel="noopener noreferrer" title="YouTube'da aç">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -192,7 +192,7 @@ export function ChannelForm({
       </div>
 
       {mode === "edit" && !isPlanned && (
-        <div>
+        <div className="lg:col-span-2">
           <label className="mb-1 block text-sm font-medium text-ink">Yayın Günleri</label>
           <div className="flex flex-wrap gap-1.5">
             {WEEKDAYS.map((day) => {
@@ -220,14 +220,14 @@ export function ChannelForm({
         </div>
       )}
 
-      <div>
+      <div className="lg:col-span-2">
         <label className="mb-1 block text-sm font-medium text-ink">Notlar</label>
         <Textarea rows={3} value={notes ?? ""} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2 pt-2 lg:col-span-2">
         <Button type="button" variant="secondary" onClick={() => router.push(listHref)}>
           Vazgeç
         </Button>

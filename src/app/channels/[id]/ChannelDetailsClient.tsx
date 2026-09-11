@@ -164,7 +164,7 @@ export function ChannelDetailsClient({ channelId }: ChannelDetailsClientProps) {
         {data.recentVideos.length === 0 ? (
           <p className="text-sm text-ink-faint">Video bulunamadı.</p>
         ) : (
-          <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
             {data.recentVideos.map((video) => (
               <div
                 key={video.videoId}

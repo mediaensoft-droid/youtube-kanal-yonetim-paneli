@@ -24,7 +24,7 @@ export default async function EditChannelPage({ params }: PageProps) {
   if (!channel) notFound();
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-xl">
+    <div className="animate-fade-in-up">
       <h1 className="mb-6 text-2xl font-semibold text-ink">Kanalı Düzenle</h1>
       <ChannelForm mode="edit" categories={categories} concepts={concepts} initialChannel={channel} />
     </div>

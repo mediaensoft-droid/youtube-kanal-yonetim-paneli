@@ -108,7 +108,7 @@ export function CategoriesClient({ initialCategories, channelCounts }: Categorie
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-ink-muted">Kanalları gruplamak için kategoriler.</p>
         <Button onClick={() => setAddOpen((o) => !o)}>
@@ -140,12 +140,12 @@ export function CategoriesClient({ initialCategories, channelCounts }: Categorie
         </form>
       )}
 
-      <div className="divide-y divide-line rounded-lg border border-line bg-surface">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {categories.length === 0 && (
-          <p className="p-6 text-center text-sm text-ink-muted">Henüz kategori eklenmedi.</p>
+          <p className="col-span-full rounded-lg border border-dashed border-line-strong p-6 text-center text-sm text-ink-muted">Henüz kategori eklenmedi.</p>
         )}
         {categories.map((category) => (
-          <div key={category.id} className="p-4 transition-colors duration-150 hover:bg-surface-hover/50">
+          <div key={category.id} className="rounded-lg border border-line bg-surface p-4 transition-colors duration-150 hover:border-line-strong hover:bg-surface-hover/50">
             {editId === category.id ? (
               <div className="space-y-3">
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} />

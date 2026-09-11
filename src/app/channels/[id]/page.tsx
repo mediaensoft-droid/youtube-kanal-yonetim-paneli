@@ -40,7 +40,7 @@ export default async function ChannelDetailPage({ params }: PageProps) {
   const viewTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.viewCount }));
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-3xl">
+    <div className="animate-fade-in-up">
       <Link
         href="/channels"
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors duration-150 hover:text-ink"

@@ -113,7 +113,7 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
   const nameChanged = name.trim() !== (displayName ?? "") && name.trim().length > 0;
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-2xl">
+    <div className="animate-fade-in-up">
       <h1 className="mb-6 text-2xl font-semibold text-ink">Profil</h1>
 
       <div className="rounded-lg border border-line bg-surface p-5 shadow-sm">

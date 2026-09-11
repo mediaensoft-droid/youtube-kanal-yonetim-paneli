@@ -20,7 +20,7 @@ export default async function NewChannelPage({ searchParams }: PageProps) {
   const [categories, concepts] = await Promise.all([listCategories(userId), listConcepts(userId)]);
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-xl">
+    <div className="animate-fade-in-up">
       <h1 className="mb-1 text-2xl font-semibold text-ink">
         {createStatus === "planned" ? "Planlanan Kanal Ekle" : "Kanal Ekle"}
       </h1>

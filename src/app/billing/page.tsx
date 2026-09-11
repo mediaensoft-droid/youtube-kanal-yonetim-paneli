@@ -45,7 +45,7 @@ export default async function BillingPage({ searchParams }: PageProps) {
   const currentPlanName = getPlan(currentPlanId).name;
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-5xl">
+    <div className="animate-fade-in-up">
       <h1 className="mb-6 text-2xl font-semibold text-ink">Üyelik</h1>
 
       {status === "success" && (

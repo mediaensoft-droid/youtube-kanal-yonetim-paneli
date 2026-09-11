@@ -39,7 +39,7 @@ export function Nav() {
 
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
-      <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-3">
+      <div className="flex items-center gap-1 px-4 py-3 sm:px-6 lg:px-8">
         <div className="mr-5 flex flex-1 items-center gap-2 sm:flex-initial">
           <BrandMark />
           <span className="text-sm font-semibold tracking-tight text-ink">Kanal Paneli</span>

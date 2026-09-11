@@ -70,8 +70,8 @@ const VIEW_MODES: { key: ViewMode; label: string; icon: typeof LayoutGrid }[] = 
 // rendered identically (a single full-width column) below the sm breakpoint, since only the
 // sm/lg/xl steps differed.
 const GRID_CLASSES: Record<"large" | "small", string> = {
-  large: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-  small: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6",
+  large: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1800px]:grid-cols-6",
+  small: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 min-[1800px]:grid-cols-10",
 };
 
 export function ChannelListClient({
@@ -180,7 +180,7 @@ export function ChannelListClient({
         </p>
       )}
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 2xl:max-w-5xl">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
           <Input
