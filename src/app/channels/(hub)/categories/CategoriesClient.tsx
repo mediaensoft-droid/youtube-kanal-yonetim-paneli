@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Concept } from "@/types";
+import type { Category } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ColorPicker } from "@/components/ColorPicker";
@@ -11,13 +11,13 @@ import { CategoryBadge } from "@/components/CategoryBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CATEGORICAL_PALETTE } from "@/lib/colors";
 
-interface ConceptsClientProps {
-  initialConcepts: Concept[];
+interface CategoriesClientProps {
+  initialCategories: Category[];
   channelCounts: Record<number, number>;
 }
 
-export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClientProps) {
-  const [concepts, setConcepts] = useState<Concept[]>(initialConcepts);
+export function CategoriesClient({ initialCategories, channelCounts }: CategoriesClientProps) {
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [counts, setCounts] = useState<Record<number, number>>(channelCounts);
 
   const [addOpen, setAddOpen] = useState(false);
@@ -29,53 +29,53 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
 
-  const [deleteTarget, setDeleteTarget] = useState<Concept | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch("/api/concepts", {
+      const res = await fetch("/api/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName, color: newColor }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Konsept eklenemedi");
-      setConcepts((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      if (!res.ok) throw new Error(data.error ?? "Kategori eklenemedi");
+      setCategories((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
       setNewName("");
       setNewColor(CATEGORICAL_PALETTE[0]);
       setAddOpen(false);
-      toast.success("Konsept eklendi");
+      toast.success("Kategori eklendi");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Konsept eklenemedi");
+      toast.error(err instanceof Error ? err.message : "Kategori eklenemedi");
     } finally {
       setSaving(false);
     }
   }
 
-  function startEdit(concept: Concept) {
-    setEditId(concept.id);
-    setEditName(concept.name);
-    setEditColor(concept.color);
+  function startEdit(category: Category) {
+    setEditId(category.id);
+    setEditName(category.name);
+    setEditColor(category.color);
   }
 
   async function handleSaveEdit(id: number) {
     setSaving(true);
     try {
-      const res = await fetch(`/api/concepts/${id}`, {
+      const res = await fetch(`/api/categories/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editName, color: editColor }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Güncellenemedi");
-      setConcepts((prev) =>
+      setCategories((prev) =>
         prev.map((c) => (c.id === id ? data : c)).sort((a, b) => a.name.localeCompare(b.name))
       );
       setEditId(null);
-      toast.success("Konsept güncellendi");
+      toast.success("Kategori güncellendi");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Güncellenemedi");
     } finally {
@@ -87,18 +87,18 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/concepts/${deleteTarget.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/categories/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok && res.status !== 204) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Silinemedi");
       }
-      setConcepts((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
       setCounts((prev) => {
         const next = { ...prev };
         delete next[deleteTarget.id];
         return next;
       });
-      toast.success("Konsept silindi");
+      toast.success("Kategori silindi");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Silinemedi");
     } finally {
@@ -108,11 +108,11 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
   }
 
   return (
-    <div className="animate-fade-in-up mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-ink">Konseptler</h1>
+        <p className="text-sm text-ink-muted">Kanalları gruplamak için kategoriler.</p>
         <Button onClick={() => setAddOpen((o) => !o)}>
-          <Plus className="h-4 w-4" /> Konsept Ekle
+          <Plus className="h-4 w-4" /> Kategori Ekle
         </Button>
       </div>
 
@@ -122,7 +122,7 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
           className="animate-scale-in mb-6 origin-top space-y-3 rounded-lg border border-line bg-surface p-4"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink">Konsept adı</label>
+            <label className="mb-1 block text-sm font-medium text-ink">Kategori adı</label>
             <Input value={newName} onChange={(e) => setNewName(e.target.value)} required />
           </div>
           <div>
@@ -141,12 +141,12 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
       )}
 
       <div className="divide-y divide-line rounded-lg border border-line bg-surface">
-        {concepts.length === 0 && (
-          <p className="p-6 text-center text-sm text-ink-muted">Henüz konsept eklenmedi.</p>
+        {categories.length === 0 && (
+          <p className="p-6 text-center text-sm text-ink-muted">Henüz kategori eklenmedi.</p>
         )}
-        {concepts.map((concept) => (
-          <div key={concept.id} className="p-4 transition-colors duration-150 hover:bg-surface-hover/50">
-            {editId === concept.id ? (
+        {categories.map((category) => (
+          <div key={category.id} className="p-4 transition-colors duration-150 hover:bg-surface-hover/50">
+            {editId === category.id ? (
               <div className="space-y-3">
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
                 <ColorPicker value={editColor} onChange={setEditColor} />
@@ -156,7 +156,7 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => handleSaveEdit(concept.id)}
+                    onClick={() => handleSaveEdit(category.id)}
                     disabled={saving}
                   >
                     <Check className="h-4 w-4" />
@@ -166,20 +166,20 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
             ) : (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CategoryBadge name={concept.name} color={concept.color} />
+                  <CategoryBadge name={category.name} color={category.color} />
                   <span className="text-xs text-ink-faint">
-                    {counts[concept.id] ?? 0} kanal
+                    {counts[category.id] ?? 0} kanal
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => startEdit(concept)}
+                    onClick={() => startEdit(category)}
                     className="rounded-md p-1.5 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => setDeleteTarget(concept)}
+                    onClick={() => setDeleteTarget(category)}
                     className="rounded-md p-1.5 text-red-400 transition-colors duration-150 hover:bg-red-950/40"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -193,12 +193,12 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Konsepti sil"
+        title="Kategoriyi sil"
         description={
           deleteTarget
-            ? `"${deleteTarget.name}" silinecek. Bu konsepte sahip ${
+            ? `"${deleteTarget.name}" silinecek. Bu kategoriye sahip ${
                 counts[deleteTarget.id] ?? 0
-              } kanal konseptsiz kalacak.`
+              } kanal kategorisiz kalacak.`
             : undefined
         }
         confirmLabel={deleting ? "Siliniyor..." : "Sil"}

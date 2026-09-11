@@ -8,8 +8,6 @@ import clsx from "clsx";
 import {
   LayoutDashboard,
   Tv,
-  Layers,
-  Lightbulb,
   Menu,
   X,
   LogOut,
@@ -21,8 +19,6 @@ import {
 const links = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/channels", label: "Kanallar", icon: Tv },
-  { href: "/categories", label: "Kategoriler", icon: Layers },
-  { href: "/concepts", label: "Konseptler", icon: Lightbulb },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
   { href: "/billing", label: "Üyelik", icon: CreditCard },
 ];

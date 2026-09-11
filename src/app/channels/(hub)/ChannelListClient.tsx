@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { Plus, Search, LayoutGrid, Grid3x3, List, EyeOff, ArrowLeft } from "lucide-react";
+import { Search, LayoutGrid, Grid3x3, List } from "lucide-react";
 import clsx from "clsx";
 import type { Category, Concept, Channel } from "@/types";
 import { ChannelCard } from "@/components/ChannelCard";
 import { ChannelListRow } from "@/components/ChannelListRow";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Button } from "@/components/ui/Button";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 
@@ -17,10 +15,8 @@ interface ChannelListClientProps {
   initialChannels: Channel[];
   categories: Category[];
   concepts: Concept[];
-  /** Which half of the user's channels this screen shows; the other half lives on the sibling page. */
+  /** Which half of the user's channels this screen shows; the other half lives on the sibling tab. */
   status: "active" | "passive";
-  /** Active screen only — drives the "Pasif Kanallar (N)" button. */
-  passiveCount?: number;
 }
 
 type ViewMode = "large" | "small" | "list";
@@ -46,7 +42,6 @@ export function ChannelListClient({
   categories,
   concepts,
   status,
-  passiveCount = 0,
 }: ChannelListClientProps) {
   const isPassiveScreen = status === "passive";
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
@@ -113,47 +108,13 @@ export function ChannelListClient({
   }
 
   return (
-    <div className="animate-fade-in-up">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">
-            {isPassiveScreen ? "Pasif Kanallar" : "Kanallar"}
-          </h1>
-          {isPassiveScreen && (
-            <p className="mt-1 text-sm text-ink-muted">
-              Bu kanallar takvimde, Dashboard&apos;da ve diğer menülerde görünmez. Göz simgesiyle tekrar
-              aktife alabilirsin.
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isPassiveScreen ? (
-            <Link href="/channels">
-              <Button variant="secondary">
-                <ArrowLeft className="h-4 w-4" /> Aktif Kanallar
-              </Button>
-            </Link>
-          ) : (
-            <>
-              <Link href="/channels/passive">
-                <Button variant="secondary">
-                  <EyeOff className="h-4 w-4" /> Pasif Kanallar
-                  {passiveCount > 0 && (
-                    <span className="rounded-full bg-surface-hover px-1.5 text-xs text-ink-muted">
-                      {passiveCount}
-                    </span>
-                  )}
-                </Button>
-              </Link>
-              <Link href="/channels/new">
-                <Button>
-                  <Plus className="h-4 w-4" /> Kanal Ekle
-                </Button>
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
+    <div>
+      {isPassiveScreen && (
+        <p className="mb-4 text-sm text-ink-muted">
+          Bu kanallar takvimde, Dashboard&apos;da ve diğer menülerde görünmez. Göz simgesiyle tekrar aktife
+          alabilirsin.
+        </p>
+      )}
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative">
