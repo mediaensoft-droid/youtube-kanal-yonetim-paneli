@@ -73,7 +73,7 @@ export async function deleteConcept(userId: number, id: number): Promise<void> {
 
 export async function countChannelsByConcept(userId: number): Promise<Record<number, number>> {
   const rows = await all<{ conceptId: number; count: number }>(
-    `SELECT conceptId, COUNT(*) as count FROM channels WHERE conceptId IS NOT NULL AND userId = ? GROUP BY conceptId`,
+    `SELECT conceptId, COUNT(*) as count FROM channels WHERE conceptId IS NOT NULL AND userId = ? AND isActive = 1 GROUP BY conceptId`,
     [userId]
   );
   const result: Record<number, number> = {};

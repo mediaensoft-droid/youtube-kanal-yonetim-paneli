@@ -2,7 +2,12 @@ import { NextRequest } from "next/server";
 import { okResponse, errorResponse } from "@/lib/http";
 import { getSessionUserId } from "@/lib/auth";
 import { updateChannelSchema } from "@/lib/validation";
-import { getChannelById, updateChannelManualFields, deleteChannel } from "@/lib/db/channels";
+import {
+  getChannelById,
+  updateChannelManualFields,
+  setChannelActive,
+  deleteChannel,
+} from "@/lib/db/channels";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +40,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     return errorResponse(400, parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
 
-  const channel = await updateChannelManualFields(userId, channelId, parsed.data);
+  const { isActive, ...manualFields } = parsed.data;
+  let channel = await updateChannelManualFields(userId, channelId, manualFields);
+  if (isActive !== undefined && isActive !== existing.isActive) {
+    channel = await setChannelActive(userId, channelId, isActive);
+  }
   return okResponse(channel);
 }
 

@@ -76,7 +76,7 @@ export async function deleteCategory(userId: number, id: number): Promise<void> 
 
 export async function countChannelsByCategory(userId: number): Promise<Record<number, number>> {
   const rows = await all<{ categoryId: number; count: number }>(
-    `SELECT categoryId, COUNT(*) as count FROM channels WHERE categoryId IS NOT NULL AND userId = ? GROUP BY categoryId`,
+    `SELECT categoryId, COUNT(*) as count FROM channels WHERE categoryId IS NOT NULL AND userId = ? AND isActive = 1 GROUP BY categoryId`,
     [userId]
   );
   const result: Record<number, number> = {};

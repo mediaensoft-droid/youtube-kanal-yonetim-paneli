@@ -18,6 +18,7 @@ interface ChannelRow {
   notes: string | null;
   publishDays: string;
   publishTime: string | null;
+  isActive: number;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +45,7 @@ function rowToChannel(row: ChannelRow): Channel {
     notes: row.notes,
     publishDays: JSON.parse(row.publishDays) as number[],
     publishTime: row.publishTime,
+    isActive: row.isActive === 1,
     lastRefreshedAt: row.lastRefreshedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -53,6 +55,12 @@ function rowToChannel(row: ChannelRow): Channel {
 export async function listChannels(userId: number, filters?: ChannelFilters): Promise<Channel[]> {
   const conditions: string[] = [`userId = ?`];
   const params: (string | number)[] = [userId];
+
+  // Passive channels are hidden everywhere by default (dashboard, calendar, list) — only the
+  // dedicated "Pasif Kanallar" screen asks for them.
+  const status = filters?.status ?? "active";
+  if (status === "active") conditions.push(`isActive = 1`);
+  else if (status === "passive") conditions.push(`isActive = 0`);
 
   if (filters?.categoryId !== undefined) {
     conditions.push(`categoryId = ?`);
@@ -83,14 +91,17 @@ export async function listChannels(userId: number, filters?: ChannelFilters): Pr
 }
 
 /**
- * Unscoped — every tenant's channels, for the daily cron refresh job only.
+ * Unscoped — every tenant's active channels, for the daily cron refresh job only.
+ * Passive channels are skipped so they don't burn YouTube API quota.
  * Never expose this via a user-facing API route.
  */
 export async function listAllChannelsForRefresh(): Promise<(Channel & { userId: number })[]> {
-  const rows = await all<ChannelRowWithOwner>(`SELECT * FROM channels ORDER BY id ASC`);
+  const rows = await all<ChannelRowWithOwner>(`SELECT * FROM channels WHERE isActive = 1 ORDER BY id ASC`);
   return rows.map((row) => ({ ...rowToChannel(row), userId: row.userId }));
 }
 
+// Counts active AND passive channels: a passive channel still occupies a slot in the plan's channel
+// limit, otherwise toggling channels passive would be a free way around the limit.
 export async function countChannelsForUser(userId: number): Promise<number> {
   const row = await get<{ count: number }>(`SELECT COUNT(*) as count FROM channels WHERE userId = ?`, [
     userId,
@@ -246,6 +257,22 @@ export async function updateChannelYouTubeData(
            updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE id = ? AND userId = ?`,
     [data.name, data.thumbnailUrl, data.subscriberCount, data.videoCount, data.viewCount, id, userId]
+  );
+  return (await getChannelById(userId, id))!;
+}
+
+export async function countPassiveChannelsForUser(userId: number): Promise<number> {
+  const row = await get<{ count: number }>(
+    `SELECT COUNT(*) as count FROM channels WHERE userId = ? AND isActive = 0`,
+    [userId]
+  );
+  return row?.count ?? 0;
+}
+
+export async function setChannelActive(userId: number, id: number, isActive: boolean): Promise<Channel> {
+  await run(
+    `UPDATE channels SET isActive = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND userId = ?`,
+    [isActive ? 1 : 0, id, userId]
   );
   return (await getChannelById(userId, id))!;
 }

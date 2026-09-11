@@ -69,6 +69,7 @@ async function bootstrapSchema(): Promise<void> {
       notes            TEXT,
       publishDays      TEXT NOT NULL DEFAULT '[]',
       publishTime      TEXT,
+      isActive         INTEGER NOT NULL DEFAULT 1,
       lastRefreshedAt  TEXT,
       createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -121,6 +122,18 @@ async function bootstrapSchema(): Promise<void> {
   if (!hasPublishTime) {
     try {
       await db.execute(`ALTER TABLE channels ADD COLUMN publishTime TEXT`);
+    } catch (err) {
+      const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+      if (!isDuplicateColumn) throw err;
+    }
+  }
+
+  // channels existed before isActive (passive channels stay stored but are hidden from the calendar,
+  // dashboard and category/concept counts, and skipped by the daily refresh) was introduced; backfill.
+  const hasIsActive = tableInfo.rows.some((row) => row.name === "isActive");
+  if (!hasIsActive) {
+    try {
+      await db.execute(`ALTER TABLE channels ADD COLUMN isActive INTEGER NOT NULL DEFAULT 1`);
     } catch (err) {
       const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
       if (!isDuplicateColumn) throw err;
@@ -243,6 +256,9 @@ async function bootstrapSchema(): Promise<void> {
           languages        TEXT NOT NULL DEFAULT '[]',
           countries        TEXT NOT NULL DEFAULT '[]',
           notes            TEXT,
+          publishDays      TEXT NOT NULL DEFAULT '[]',
+          publishTime      TEXT,
+          isActive         INTEGER NOT NULL DEFAULT 1,
           lastRefreshedAt  TEXT,
           createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
           updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -250,9 +266,11 @@ async function bootstrapSchema(): Promise<void> {
         );
         INSERT INTO channels_new
           (id, userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
-           categoryId, conceptId, languages, countries, notes, lastRefreshedAt, createdAt, updatedAt)
+           categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
+           lastRefreshedAt, createdAt, updatedAt)
         SELECT id, NULL, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
-               categoryId, conceptId, languages, countries, notes, lastRefreshedAt, createdAt, updatedAt
+               categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
+               lastRefreshedAt, createdAt, updatedAt
         FROM channels;
         DROP TABLE channels;
         ALTER TABLE channels_new RENAME TO channels;

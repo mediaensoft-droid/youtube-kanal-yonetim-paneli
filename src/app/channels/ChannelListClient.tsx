@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, LayoutGrid, Grid3x3, List } from "lucide-react";
+import { Plus, Search, LayoutGrid, Grid3x3, List, EyeOff, ArrowLeft } from "lucide-react";
 import clsx from "clsx";
 import type { Category, Concept, Channel } from "@/types";
 import { ChannelCard } from "@/components/ChannelCard";
@@ -17,6 +17,10 @@ interface ChannelListClientProps {
   initialChannels: Channel[];
   categories: Category[];
   concepts: Concept[];
+  /** Which half of the user's channels this screen shows; the other half lives on the sibling page. */
+  status: "active" | "passive";
+  /** Active screen only — drives the "Pasif Kanallar (N)" button. */
+  passiveCount?: number;
 }
 
 type ViewMode = "large" | "small" | "list";
@@ -37,7 +41,14 @@ const GRID_CLASSES: Record<"large" | "small", string> = {
   small: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6",
 };
 
-export function ChannelListClient({ initialChannels, categories, concepts }: ChannelListClientProps) {
+export function ChannelListClient({
+  initialChannels,
+  categories,
+  concepts,
+  status,
+  passiveCount = 0,
+}: ChannelListClientProps) {
+  const isPassiveScreen = status === "passive";
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -96,15 +107,52 @@ export function ChannelListClient({ initialChannels, categories, concepts }: Cha
     setChannels((prev) => prev.filter((c) => c.id !== id));
   }
 
+  // A channel that changed status now belongs to the other screen; drop it here.
+  function handleStatusChanged(id: number) {
+    setChannels((prev) => prev.filter((c) => c.id !== id));
+  }
+
   return (
     <div className="animate-fade-in-up">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-ink">Kanallar</h1>
-        <Link href="/channels/new">
-          <Button>
-            <Plus className="h-4 w-4" /> Kanal Ekle
-          </Button>
-        </Link>
+        <div>
+          <h1 className="text-2xl font-semibold text-ink">
+            {isPassiveScreen ? "Pasif Kanallar" : "Kanallar"}
+          </h1>
+          {isPassiveScreen && (
+            <p className="mt-1 text-sm text-ink-muted">
+              Bu kanallar takvimde, Dashboard&apos;da ve diğer menülerde görünmez. Göz simgesiyle tekrar
+              aktife alabilirsin.
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {isPassiveScreen ? (
+            <Link href="/channels">
+              <Button variant="secondary">
+                <ArrowLeft className="h-4 w-4" /> Aktif Kanallar
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/channels/passive">
+                <Button variant="secondary">
+                  <EyeOff className="h-4 w-4" /> Pasif Kanallar
+                  {passiveCount > 0 && (
+                    <span className="rounded-full bg-surface-hover px-1.5 text-xs text-ink-muted">
+                      {passiveCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+              <Link href="/channels/new">
+                <Button>
+                  <Plus className="h-4 w-4" /> Kanal Ekle
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -181,7 +229,9 @@ export function ChannelListClient({ initialChannels, categories, concepts }: Cha
       {filteredChannels.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong py-16 text-center text-ink-muted">
           {channels.length === 0
-            ? "Henüz kanal eklenmedi."
+            ? isPassiveScreen
+              ? "Pasif kanal yok."
+              : "Henüz kanal eklenmedi."
             : "Filtrelerle eşleşen kanal bulunamadı."}
         </div>
       ) : viewMode === "list" ? (
@@ -194,6 +244,7 @@ export function ChannelListClient({ initialChannels, categories, concepts }: Cha
               concept={channel.conceptId ? conceptById.get(channel.conceptId) : undefined}
               onRefreshed={handleRefreshed}
               onDeleted={handleDeleted}
+              onStatusChanged={handleStatusChanged}
             />
           ))}
         </div>
@@ -207,6 +258,7 @@ export function ChannelListClient({ initialChannels, categories, concepts }: Cha
               concept={channel.conceptId ? conceptById.get(channel.conceptId) : undefined}
               onRefreshed={handleRefreshed}
               onDeleted={handleDeleted}
+              onStatusChanged={handleStatusChanged}
             />
           ))}
         </div>

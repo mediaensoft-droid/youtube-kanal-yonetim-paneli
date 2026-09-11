@@ -28,12 +28,17 @@ export interface Channel {
   notes: string | null;
   publishDays: number[];
   publishTime: string | null;
+  isActive: boolean;
   lastRefreshedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+export type ChannelStatusFilter = "active" | "passive" | "all";
+
 export interface ChannelFilters {
+  /** Defaults to "active" — passive channels only show up where explicitly requested. */
+  status?: ChannelStatusFilter;
   categoryId?: number;
   conceptId?: number;
   language?: string;

@@ -3,12 +3,25 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Pencil, Trash2, BarChart3, ChevronRight, Settings2, ListVideo, Users, Video } from "lucide-react";
+import {
+  RefreshCw,
+  Pencil,
+  Trash2,
+  BarChart3,
+  ChevronRight,
+  Settings2,
+  ListVideo,
+  Users,
+  Video,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
+import { ChannelPassiveWarning } from "@/components/ChannelPassiveWarning";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
@@ -20,13 +33,17 @@ interface ChannelCardProps {
   concept: Concept | undefined;
   onRefreshed: (channel: Channel) => void;
   onDeleted: (id: number) => void;
+  /** Fired after the channel flips active⇄passive; the list drops it since it now belongs to the other screen. */
+  onStatusChanged: (id: number) => void;
 }
 
-export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted }: ChannelCardProps) {
+export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted, onStatusChanged }: ChannelCardProps) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [passiveConfirmOpen, setPassiveConfirmOpen] = useState(false);
 
   async function handleRefresh(e: React.MouseEvent) {
     e.stopPropagation();
@@ -42,6 +59,36 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
     } finally {
       setRefreshing(false);
     }
+  }
+
+  async function handleToggleActive() {
+    const nextActive = !channel.isActive;
+    setToggling(true);
+    try {
+      const res = await fetch(`/api/channels/${channel.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "İşlem başarısız oldu");
+      onStatusChanged(channel.id);
+      // Calendar/dashboard/category counts all derive from the active set — refresh their server data.
+      router.refresh();
+      toast.success(nextActive ? "Kanal aktife alındı" : "Kanal pasife alındı");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "İşlem başarısız oldu");
+    } finally {
+      setToggling(false);
+      setPassiveConfirmOpen(false);
+    }
+  }
+
+  // Reactivating is harmless (nothing is hidden or lost), so only the passive direction asks first.
+  function handleToggleClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (channel.isActive) setPassiveConfirmOpen(true);
+    else void handleToggleActive();
   }
 
   async function handleDelete() {
@@ -180,6 +227,19 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
                 <Pencil className="h-3.5 w-3.5" />
               </Link>
               <button
+                onClick={handleToggleClick}
+                disabled={toggling}
+                title={channel.isActive ? "Pasife al" : "Aktife al"}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-150 disabled:opacity-50 ${
+                  channel.isActive
+                    ? "text-ink-muted hover:bg-surface-hover hover:text-ink"
+                    : "text-emerald-400 hover:bg-emerald-950/40"
+                }`}
+              >
+                {channel.isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                {!channel.isActive && "Aktife al"}
+              </button>
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setConfirmOpen(true);
@@ -193,6 +253,15 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={passiveConfirmOpen}
+        title="Kanalı pasife al"
+        description={<ChannelPassiveWarning channel={channel} />}
+        confirmLabel="Pasife al"
+        onConfirm={handleToggleActive}
+        onCancel={() => setPassiveConfirmOpen(false)}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

@@ -28,7 +28,12 @@ export async function GET(req: NextRequest) {
   const categoryIdParam = searchParams.get("categoryId");
   const conceptIdParam = searchParams.get("conceptId");
 
+  const statusParam = searchParams.get("status");
   const channels = await listChannels(userId, {
+    status:
+      statusParam === "passive" || statusParam === "all" || statusParam === "active"
+        ? statusParam
+        : undefined,
     categoryId: categoryIdParam ? Number(categoryIdParam) : undefined,
     conceptId: conceptIdParam ? Number(conceptIdParam) : undefined,
     language: searchParams.get("language") ?? undefined,

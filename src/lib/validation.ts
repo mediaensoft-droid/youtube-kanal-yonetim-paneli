@@ -24,6 +24,7 @@ export const updateChannelSchema = z.object({
     .nullable()
     .optional(),
   url: z.string().trim().min(1).optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const createCategorySchema = z.object({
