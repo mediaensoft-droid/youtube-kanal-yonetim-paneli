@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -92,6 +92,11 @@ export function ActivityClient({ members }: ActivityClientProps) {
     return { from: customFrom || undefined, to: customTo || undefined };
   }, [period, customFrom, customTo]);
 
+  // "Özel" period needs both dates picked (and a sane order) before we fetch anything.
+  const customRangeIncomplete = period === "custom" && (!customFrom || !customTo);
+  const customRangeInvalid = period === "custom" && !!customFrom && !!customTo && customFrom > customTo;
+  const canFetch = !customRangeIncomplete && !customRangeInvalid;
+
   const buildParams = useCallback(
     (cursor?: number) => {
       const params = new URLSearchParams();
@@ -105,23 +110,36 @@ export function ActivityClient({ members }: ActivityClientProps) {
     [memberId, from, to, type]
   );
 
+  // Guards against a slower earlier response (e.g. previous filter selection) landing after a
+  // newer one and clobbering it — only the most recently issued request may write to state.
+  const requestIdRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
   const load = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const requestId = ++requestIdRef.current;
+
     setLoading(true);
     setItems([]);
     setNextCursor(null);
     try {
       const params = buildParams();
-      const res = await fetch(`/api/activity?${params.toString()}`);
+      const res = await fetch(`/api/activity?${params.toString()}`, { signal: controller.signal });
       const data: ActivityResponse | ErrorPayload = await res.json();
+      if (requestIdRef.current !== requestId) return;
       if (!res.ok) throw new Error((data as ErrorPayload).error ?? "Hareketler yüklenemedi");
       const payload = data as ActivityResponse;
       setItems(payload.items);
       setNextCursor(payload.nextCursor);
       if (payload.summary) setSummary(payload.summary);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (requestIdRef.current !== requestId) return;
       toast.error(err instanceof Error ? err.message : "Hareketler yüklenemedi");
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestId) setLoading(false);
     }
   }, [buildParams]);
 
@@ -144,11 +162,19 @@ export function ActivityClient({ members }: ActivityClientProps) {
   }
 
   useEffect(() => {
+    if (!canFetch) {
+      // "Özel" period selected but the range isn't ready yet — don't fetch. Any in-flight request
+      // from a previous (valid) filter combination must not land and overwrite state later; the
+      // `!canFetch` guards in the JSX below keep stale `items`/`nextCursor` from being shown.
+      abortRef.current?.abort();
+      requestIdRef.current++;
+      return;
+    }
     // load() only calls setState after its internal `await`, never synchronously — this is the
     // standard fetch-on-filter-change pattern, not the cascading-render case the rule guards against.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-  }, [load]);
+  }, [load, canFetch]);
 
   const cardMembers = useMemo(() => {
     const ids = new Set<number>(Object.keys(summary).map(Number));
@@ -222,6 +248,13 @@ export function ActivityClient({ members }: ActivityClientProps) {
         )}
       </div>
 
+      {customRangeIncomplete && (
+        <p className="mb-6 -mt-3 text-sm text-ink-muted">Başlangıç ve bitiş tarihi seçin.</p>
+      )}
+      {customRangeInvalid && (
+        <p className="mb-6 -mt-3 text-sm text-red-400">Başlangıç tarihi bitiş tarihinden sonra olamaz.</p>
+      )}
+
       {cardMembers.length > 0 && (
         <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {cardMembers.map((m) => {
@@ -235,7 +268,7 @@ export function ActivityClient({ members }: ActivityClientProps) {
                 <dl className="space-y-1.5 text-sm">
                   <Stat label="Kanal ekledi" value={countFor(memberSummary, ["channel.create"])} />
                   <Stat label="Düzenledi" value={countFor(memberSummary, ["channel.update"])} />
-                  <Stat label="Durum değiştirdi" value={countFor(memberSummary, ["channel.status"])} />
+                  <Stat label="Pasife aldı" value={countFor(memberSummary, ["channel.status.passive"])} />
                   <Stat label="Sildi" value={countFor(memberSummary, ["channel.delete"])} />
                   <Stat
                     label="Takvim"
@@ -250,7 +283,7 @@ export function ActivityClient({ members }: ActivityClientProps) {
         </div>
       )}
 
-      {loading && items.length === 0 ? (
+      {!canFetch ? null : loading && items.length === 0 ? (
         <p className="flex items-center gap-2 rounded-lg border border-dashed border-line-strong p-6 text-center text-sm text-ink-muted">
           <Loader2 className="h-4 w-4 animate-spin" /> Yükleniyor...
         </p>
@@ -279,7 +312,7 @@ export function ActivityClient({ members }: ActivityClientProps) {
                         {subject && <span className="font-medium text-ink">{subject} </span>}
                         {text}
                       </span>
-                      {item.entityType === "channel" && item.entityId && (
+                      {item.entityType === "channel" && item.entityId && item.action !== "channel.delete" && (
                         <Link href={`/channels/${item.entityId}`} className="text-brand hover:underline">
                           Kanala git
                         </Link>
@@ -293,7 +326,7 @@ export function ActivityClient({ members }: ActivityClientProps) {
         </div>
       )}
 
-      {nextCursor !== null && (
+      {canFetch && nextCursor !== null && (
         <div className="mt-4 flex justify-center">
           <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
             {loadingMore ? "Yükleniyor..." : "Daha fazla"}

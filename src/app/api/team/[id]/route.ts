@@ -34,23 +34,34 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const member = await updateMember(actor.workspaceId, memberId, parsed.data);
 
   const statusChanged = parsed.data.status !== undefined && parsed.data.status !== existing.status;
-  await logActivity(
-    { workspaceId: actor.workspaceId, memberId: actor.memberId },
-    statusChanged
-      ? {
-          action: "member.status",
-          entityType: "member",
-          entityId: member.id,
-          entityName: member.displayName,
-          details: { from: existing.status, to: parsed.data.status },
-        }
-      : {
-          action: "member.update",
-          entityType: "member",
-          entityId: member.id,
-          entityName: member.displayName,
-        }
+  const changedFields = (["displayName", "role"] as const).filter(
+    (key) => parsed.data[key] !== undefined && parsed.data[key] !== existing[key]
   );
+
+  if (changedFields.length > 0) {
+    await logActivity(
+      { workspaceId: actor.workspaceId, memberId: actor.memberId },
+      {
+        action: "member.update",
+        entityType: "member",
+        entityId: member.id,
+        entityName: member.displayName,
+        details: { changedFields },
+      }
+    );
+  }
+  if (statusChanged) {
+    await logActivity(
+      { workspaceId: actor.workspaceId, memberId: actor.memberId },
+      {
+        action: "member.status",
+        entityType: "member",
+        entityId: member.id,
+        entityName: member.displayName,
+        details: { from: existing.status, to: parsed.data.status },
+      }
+    );
+  }
 
   return okResponse(member);
 }

@@ -9,7 +9,10 @@ export const dynamic = "force-dynamic";
 
 const TYPE_KEYS = Object.keys(ACTIVITY_TYPES) as [string, ...string[]];
 
-const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli bir tarih girin (YYYY-AA-GG)");
+const dateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Geçerli bir tarih girin (YYYY-AA-GG)")
+  .refine((d) => !Number.isNaN(Date.parse(d + "T00:00:00Z")), "Geçersiz tarih");
 
 const querySchema = z.object({
   memberId: z.coerce.number().int().positive().optional(),

@@ -143,7 +143,8 @@ export function describeActivity(item: ActivityDescribable): ActivityDescription
       const date = typeof details.date === "string" ? details.date : "";
       const statusKey = typeof details.status === "string" ? details.status : "";
       const statusLabel = SCHEDULE_STATUS_LABELS[statusKey] ?? statusKey;
-      return { subject: entityName, text: `için ${date} tarihini ${statusLabel} yaptı`.trim() };
+      const parts = ["için", date, "tarihini", statusLabel, "yaptı"].filter((part) => part.length > 0);
+      return { subject: entityName, text: parts.join(" ") };
     }
     case "schedule.delete": {
       const date = typeof details.date === "string" ? details.date : "";

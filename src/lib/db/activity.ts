@@ -171,5 +171,22 @@ export async function summarizeActivity(
     if (!result[row.memberId]) result[row.memberId] = {};
     result[row.memberId][row.action] = row.count;
   }
+
+  // Synthetic key: how many channel.status rows moved a channel TO "passive", per member —
+  // ACTIVITY_TYPES groups all channel.status transitions together, so this needs its own query.
+  const passiveConditions = [...conditions, `action = 'channel.status'`, `json_extract(details, '$.to') = 'passive'`];
+  const passiveRows = await all<{ memberId: number | null; count: number }>(
+    `SELECT memberId, COUNT(*) as count
+       FROM activity_log
+      WHERE ${passiveConditions.join(" AND ")}
+      GROUP BY memberId`,
+    params
+  );
+  for (const row of passiveRows) {
+    if (row.memberId === null) continue;
+    if (!result[row.memberId]) result[row.memberId] = {};
+    result[row.memberId]["channel.status.passive"] = row.count;
+  }
+
   return result;
 }

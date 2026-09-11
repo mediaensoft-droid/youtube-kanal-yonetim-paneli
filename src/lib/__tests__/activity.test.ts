@@ -93,6 +93,16 @@ describe("describeActivity", () => {
     ).toBe("için 2026-09-12 tarihini atlandı yaptı");
   });
 
+  it("schedule.upsert without a date skips it without leaving a double space", () => {
+    const result = describeActivity({
+      action: "schedule.upsert",
+      entityName: "Test Kanalı",
+      details: { status: "published" },
+    });
+    expect(result.text).toBe("için tarihini yayınlandı yaptı");
+    expect(result.text).not.toMatch(/ {2}/);
+  });
+
   it("auth.login has no subject", () => {
     const result = describeActivity({ action: "auth.login", entityName: null, details: {} });
     expect(result.subject).toBeNull();
