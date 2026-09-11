@@ -9,6 +9,7 @@ import {
   setChannelStatus,
   deleteChannel,
 } from "@/lib/db/channels";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,42 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   const { status, ...manualFields } = parsed.data;
+
+  const changedFields = (Object.keys(manualFields) as (keyof typeof manualFields)[]).filter((key) => {
+    const value = manualFields[key];
+    if (value === undefined) return false;
+    return JSON.stringify(existing[key as keyof typeof existing]) !== JSON.stringify(value);
+  });
+
   let channel = await updateChannelManualFields(userId, channelId, manualFields);
+
+  if (changedFields.length > 0) {
+    await logActivity(
+      { workspaceId: userId, memberId: actor.memberId },
+      {
+        action: "channel.update",
+        entityType: "channel",
+        entityId: channelId,
+        entityName: channel.name,
+        details: { changedFields },
+      }
+    );
+  }
+
   if (status !== undefined && status !== existing.status) {
     channel = await setChannelStatus(userId, channelId, status, actor.memberId);
+    await logActivity(
+      { workspaceId: userId, memberId: actor.memberId },
+      {
+        action: "channel.status",
+        entityType: "channel",
+        entityId: channelId,
+        entityName: channel.name,
+        details: { from: existing.status, to: status },
+      }
+    );
   }
+
   return okResponse(channel);
 }
 
@@ -61,5 +94,16 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   if (!existing) return errorResponse(404, "Kanal bulunamadı");
 
   await deleteChannel(userId, channelId);
+
+  await logActivity(
+    { workspaceId: userId, memberId: actor.memberId },
+    {
+      action: "channel.delete",
+      entityType: "channel",
+      entityId: channelId,
+      entityName: existing.name,
+    }
+  );
+
   return new Response(null, { status: 204 });
 }

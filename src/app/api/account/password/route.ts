@@ -4,6 +4,7 @@ import { requireActor, isResponse } from "@/lib/authz";
 import { changeOwnPasswordSchema } from "@/lib/validation";
 import { getMemberPasswordHash, setMemberPasswordHash } from "@/lib/db/members";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -27,5 +28,11 @@ export async function POST(req: NextRequest) {
   }
 
   await setMemberPasswordHash(actor.workspaceId, actor.memberId, await hashPassword(parsed.data.newPassword));
+
+  await logActivity(
+    { workspaceId: actor.workspaceId, memberId: actor.memberId },
+    { action: "account.password", entityType: "member", entityId: actor.memberId }
+  );
+
   return new Response(null, { status: 204 });
 }

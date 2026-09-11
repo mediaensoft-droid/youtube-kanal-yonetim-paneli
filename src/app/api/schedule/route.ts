@@ -5,6 +5,7 @@ import { requirePermission, isResponse } from "@/lib/authz";
 import { upsertScheduleEntrySchema } from "@/lib/validation";
 import { listScheduleEntries, upsertScheduleEntry } from "@/lib/db/schedule";
 import { getChannelById } from "@/lib/db/channels";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +36,17 @@ export async function POST(req: NextRequest) {
   if (!channel) return errorResponse(404, "Kanal bulunamadı");
 
   const entry = await upsertScheduleEntry(userId, parsed.data);
+
+  await logActivity(
+    { workspaceId: userId, memberId: actor.memberId },
+    {
+      action: "schedule.upsert",
+      entityType: "schedule",
+      entityId: entry.id,
+      entityName: channel.name,
+      details: { date: entry.date, status: entry.status },
+    }
+  );
+
   return okResponse(entry, 201);
 }

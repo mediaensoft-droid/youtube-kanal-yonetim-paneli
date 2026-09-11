@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { formatRelativeTime } from "@/lib/format";
+import { TeamTabs } from "./TeamTabs";
 
 interface TeamClientProps {
   initialMembers: Member[];
@@ -169,6 +170,8 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
           <Plus className="h-4 w-4" /> Personel Ekle
         </Button>
       </div>
+
+      <TeamTabs />
 
       {addOpen && (
         <form

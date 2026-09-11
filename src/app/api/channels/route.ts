@@ -12,6 +12,7 @@ import {
   countPlannedChannelsForUser,
 } from "@/lib/db/channels";
 import { createSnapshot } from "@/lib/db/snapshots";
+import { logActivity } from "@/lib/db/activity";
 import {
   resolveToChannelId,
   fetchChannelData,
@@ -124,6 +125,17 @@ export async function POST(req: NextRequest) {
       videoCount: data.videoCount,
       viewCount: data.viewCount,
     });
+
+    await logActivity(
+      { workspaceId: userId, memberId: actor.memberId },
+      {
+        action: "channel.create",
+        entityType: "channel",
+        entityId: channel.id,
+        entityName: channel.name,
+        details: { status },
+      }
+    );
 
     return okResponse(channel, 201);
   } catch (err) {

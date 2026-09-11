@@ -216,6 +216,30 @@ async function bootstrapSchema(): Promise<void> {
   await db.execute(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_members_owner ON members(userId) WHERE role = 'yonetici'`
   );
+
+  // Who-did-what audit trail (B). memberId is nullable so a removed member's history survives
+  // them; entityName snapshots the name at the time of the action so it still reads sensibly
+  // after the underlying channel/category/member row is gone.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS activity_log (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      memberId   INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      action     TEXT NOT NULL,
+      entityType TEXT NOT NULL,
+      entityId   INTEGER,
+      entityName TEXT,
+      details    TEXT,
+      createdAt  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_activity_log_userId_createdAt ON activity_log(userId, createdAt)`
+  );
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_activity_log_userId_memberId_createdAt ON activity_log(userId, memberId, createdAt)`
+  );
+
   // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
   await db.execute(`
     INSERT INTO members (userId, role, displayName)

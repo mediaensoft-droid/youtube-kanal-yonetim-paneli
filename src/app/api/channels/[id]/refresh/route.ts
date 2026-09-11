@@ -4,6 +4,7 @@ import { requirePermission, isResponse } from "@/lib/authz";
 import { hasActiveAccess } from "@/lib/access";
 import { getChannelById, updateChannelYouTubeData } from "@/lib/db/channels";
 import { createSnapshot } from "@/lib/db/snapshots";
+import { logActivity } from "@/lib/db/activity";
 import { fetchChannelData, ChannelResolutionError, ChannelApiError } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,17 @@ export async function POST(_req: NextRequest, { params }: RouteContext) {
       videoCount: data.videoCount,
       viewCount: data.viewCount,
     });
+
+    await logActivity(
+      { workspaceId: userId, memberId: actor.memberId },
+      {
+        action: "channel.refresh",
+        entityType: "channel",
+        entityId: channelId,
+        entityName: channel.name,
+      }
+    );
+
     return okResponse(channel);
   } catch (err) {
     if (err instanceof ChannelResolutionError) {
