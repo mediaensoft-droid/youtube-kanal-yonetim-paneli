@@ -13,6 +13,7 @@ import {
   LogOut,
   CreditCard,
   CalendarDays,
+  ClipboardList,
   UserRound,
   Users,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const BASE_LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/channels", label: "Kanallar", icon: Tv },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
+  { href: "/tasks", label: "Görevler", icon: ClipboardList },
 ];
 
 const OWNER_ONLY_LINKS = [
