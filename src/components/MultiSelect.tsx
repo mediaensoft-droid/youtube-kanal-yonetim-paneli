@@ -10,6 +10,11 @@ export interface MultiSelectOption {
   icon?: string;
   /** Hex colour rendered as a small dot before the label (category/concept pickers). */
   color?: string;
+  /** External logo (e.g. a favicon proxy URL) rendered at 16px, with a letter fallback on error. */
+  iconUrl?: string;
+  /** When set, a small group header row is shown above the first option of each new group
+   * (options must already be sorted/grouped — e.g. AI tool categories). */
+  group?: string;
 }
 
 function ColorDot({ color }: { color: string }) {
@@ -18,6 +23,26 @@ function ColorDot({ color }: { color: string }) {
       aria-hidden
       className="inline-block h-2 w-2 shrink-0 rounded-full"
       style={{ backgroundColor: color }}
+    />
+  );
+}
+
+function OptionLogo({ label, iconUrl }: { label: string; iconUrl: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-surface-hover text-[11px] leading-none font-semibold text-ink-muted">
+        {label.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={iconUrl}
+      alt=""
+      className="h-4 w-4 shrink-0 rounded-sm object-contain"
+      onError={() => setFailed(true)}
     />
   );
 }
@@ -83,6 +108,7 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seçin...
                 className="inline-flex items-center gap-1 rounded bg-surface-hover px-1.5 py-0.5 text-xs text-ink"
               >
                 {opt?.color && <ColorDot color={opt.color} />}
+                {opt?.iconUrl && <OptionLogo label={opt.label} iconUrl={opt.iconUrl} />}
                 {opt?.icon} {opt?.label ?? code}
                 <X
                   className="h-3 w-3 cursor-pointer text-ink-muted hover:text-brand"
@@ -118,10 +144,16 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seçin...
             {filteredOptions.length === 0 && (
               <li className="px-3 py-2 text-sm text-ink-faint">Sonuç yok</li>
             )}
-            {filteredOptions.map((opt) => {
+            {filteredOptions.map((opt, i) => {
               const selected = value.includes(opt.code);
+              const showGroupHeader = opt.group !== undefined && opt.group !== filteredOptions[i - 1]?.group;
               return (
                 <li key={opt.code}>
+                  {showGroupHeader && (
+                    <div className="sticky top-0 bg-surface-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                      {opt.group}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => toggle(opt.code)}
@@ -132,6 +164,7 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seçin...
                   >
                     <input type="checkbox" checked={selected} readOnly className="pointer-events-none accent-brand" />
                     {opt.color && <ColorDot color={opt.color} />}
+                    {opt.iconUrl && <OptionLogo label={opt.label} iconUrl={opt.iconUrl} />}
                     {opt.icon && <span>{opt.icon}</span>}
                     <span>{opt.label}</span>
                   </button>

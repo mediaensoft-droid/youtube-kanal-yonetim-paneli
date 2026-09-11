@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return errorResponse(400, parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
-  const { input, categoryIds, conceptIds, languages, countries, notes } = parsed.data;
+  const { input, categoryIds, conceptIds, languages, countries, notes, aiTools } = parsed.data;
   const status = parsed.data.status ?? "active";
 
   // Own channels and planned (reference) channels draw from separate plan allowances.
@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
       countries: countries ?? [],
       notes: notes ?? null,
       status,
+      aiTools: aiTools ?? [],
       createdByMemberId: actor.memberId,
     });
 

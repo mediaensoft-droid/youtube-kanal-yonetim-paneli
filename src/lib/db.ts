@@ -73,6 +73,7 @@ async function bootstrapSchema(): Promise<void> {
       categoryIds      TEXT NOT NULL DEFAULT '[]',
       conceptIds       TEXT NOT NULL DEFAULT '[]',
       status           TEXT NOT NULL DEFAULT 'active',
+      aiTools          TEXT NOT NULL DEFAULT '[]',
       createdByMemberId        INTEGER,
       statusChangedByMemberId  INTEGER,
       statusChangedAt          TEXT,
@@ -179,6 +180,18 @@ async function bootstrapSchema(): Promise<void> {
       await db.execute(
         `UPDATE channels SET ${column} = json_array(${legacy}) WHERE ${legacy} IS NOT NULL AND ${column} = '[]'`
       );
+    }
+  }
+
+  // channels existed before aiTools (E) — the list of AI tool catalog ids a channel is tagged
+  // with — was introduced; backfill the column.
+  const hasAiTools = tableInfo.rows.some((row) => row.name === "aiTools");
+  if (!hasAiTools) {
+    try {
+      await db.execute(`ALTER TABLE channels ADD COLUMN aiTools TEXT NOT NULL DEFAULT '[]'`);
+    } catch (err) {
+      const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+      if (!isDuplicateColumn) throw err;
     }
   }
 
@@ -445,6 +458,7 @@ async function bootstrapSchema(): Promise<void> {
           categoryIds      TEXT NOT NULL DEFAULT '[]',
           conceptIds       TEXT NOT NULL DEFAULT '[]',
           status           TEXT NOT NULL DEFAULT 'active',
+          aiTools          TEXT NOT NULL DEFAULT '[]',
           createdByMemberId        INTEGER,
           statusChangedByMemberId  INTEGER,
           statusChangedAt          TEXT,
@@ -456,11 +470,11 @@ async function bootstrapSchema(): Promise<void> {
         INSERT INTO channels_new
           (id, userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
            categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
-           categoryIds, conceptIds, status, createdByMemberId, statusChangedByMemberId, statusChangedAt,
+           categoryIds, conceptIds, status, aiTools, createdByMemberId, statusChangedByMemberId, statusChangedAt,
            lastRefreshedAt, createdAt, updatedAt)
         SELECT id, NULL, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
                categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
-               categoryIds, conceptIds, status, createdByMemberId, statusChangedByMemberId, statusChangedAt,
+               categoryIds, conceptIds, status, aiTools, createdByMemberId, statusChangedByMemberId, statusChangedAt,
                lastRefreshedAt, createdAt, updatedAt
         FROM channels;
         DROP TABLE channels;

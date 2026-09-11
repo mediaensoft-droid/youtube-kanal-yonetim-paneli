@@ -87,7 +87,7 @@ export const FIELD_LABELS: Record<string, string> = {
   publishDays: "yayın günleri",
   publishTime: "yayın saati",
   url: "URL",
-  aiTools: "yapay zeka araçları", // reserved for (E)
+  aiTools: "yapay zeka araçları",
   title: "başlık",
   description: "açıklama",
   assigneeMemberId: "atanan kişi",

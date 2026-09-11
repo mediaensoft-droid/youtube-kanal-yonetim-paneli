@@ -11,6 +11,7 @@ import { MultiSelect } from "@/components/MultiSelect";
 import { LANGUAGES } from "@/lib/constants/languages";
 import { COUNTRIES, countryFlagEmoji } from "@/lib/constants/countries";
 import { WEEKDAYS } from "@/lib/weekdays";
+import { AI_TOOLS, AI_TOOL_CATEGORIES, toolLogoUrl } from "@/lib/aiTools";
 import clsx from "clsx";
 
 const languageOptions = LANGUAGES.map((l) => ({ code: l.code, label: l.name }));
@@ -18,6 +19,13 @@ const countryOptions = COUNTRIES.map((c) => ({
   code: c.code,
   label: c.name,
   icon: countryFlagEmoji(c.code),
+}));
+const categoryLabelById = new Map(AI_TOOL_CATEGORIES.map((c) => [c.id, c.label]));
+const aiToolOptions = AI_TOOLS.map((tool) => ({
+  code: tool.id,
+  label: tool.name,
+  iconUrl: toolLogoUrl(tool),
+  group: categoryLabelById.get(tool.category) ?? tool.category,
 }));
 
 interface ChannelFormProps {
@@ -57,6 +65,7 @@ export function ChannelForm({
   const [countries, setCountries] = useState<string[]>(initialChannel?.countries ?? []);
   const [notes, setNotes] = useState(initialChannel?.notes ?? "");
   const [publishDays, setPublishDays] = useState<number[]>(initialChannel?.publishDays ?? []);
+  const [aiTools, setAiTools] = useState<string[]>(initialChannel?.aiTools ?? []);
 
   function togglePublishDay(iso: number) {
     setPublishDays((prev) => (prev.includes(iso) ? prev.filter((d) => d !== iso) : [...prev, iso].sort()));
@@ -80,6 +89,7 @@ export function ChannelForm({
             languages,
             countries,
             notes: notes || null,
+            aiTools,
           }),
         });
         const data = await res.json();
@@ -98,6 +108,7 @@ export function ChannelForm({
             countries,
             notes: notes || null,
             publishDays,
+            aiTools,
           }),
         });
         const data = await res.json();
@@ -188,6 +199,16 @@ export function ChannelForm({
           value={countries}
           onChange={setCountries}
           placeholder="Ülke seçin..."
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-ink">Yapay Zeka Araçları</label>
+        <MultiSelect
+          options={aiToolOptions}
+          value={aiTools}
+          onChange={setAiTools}
+          placeholder="Araç seçin..."
         />
       </div>
 

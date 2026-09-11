@@ -40,6 +40,8 @@ export interface Channel {
   publishDays: number[];
   publishTime: string | null;
   status: ChannelStatus;
+  /** Ids into the AI_TOOLS catalog (src/lib/aiTools.ts) — the tools used to produce this channel's content. */
+  aiTools: string[];
   createdByMemberId: number | null;
   statusChangedByMemberId: number | null;
   statusChangedAt: string | null;
@@ -66,6 +68,7 @@ export interface CreateChannelInput {
   languages?: string[];
   countries?: string[];
   notes?: string | null;
+  aiTools?: string[];
 }
 
 export interface UpdateChannelInput {
@@ -77,6 +80,7 @@ export interface UpdateChannelInput {
   publishDays?: number[];
   publishTime?: string | null;
   url?: string;
+  aiTools?: string[];
 }
 
 export interface RecentVideo {

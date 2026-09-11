@@ -1,8 +1,16 @@
 import { z } from "zod";
+import { AI_TOOL_IDS } from "@/lib/aiTools";
 
 const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Geçerli bir hex renk kodu girin (#RRGGBB)");
 
 const idList = z.array(z.number().int().positive()).optional();
+
+const aiToolsList = z
+  .array(z.string())
+  .optional()
+  .refine((ids) => !ids || ids.every((id) => AI_TOOL_IDS.has(id)), {
+    message: "Bilinmeyen yapay zeka aracı",
+  });
 
 export const createChannelSchema = z.object({
   input: z.string().trim().min(1, "YouTube URL veya kanal ID'si gerekli"),
@@ -13,6 +21,7 @@ export const createChannelSchema = z.object({
   languages: z.array(z.string()).optional(),
   countries: z.array(z.string()).optional(),
   notes: z.string().nullable().optional(),
+  aiTools: aiToolsList,
 });
 
 export const updateChannelSchema = z.object({
@@ -29,6 +38,7 @@ export const updateChannelSchema = z.object({
     .optional(),
   url: z.string().trim().min(1).optional(),
   status: z.enum(["active", "passive", "planned"]).optional(),
+  aiTools: aiToolsList,
 });
 
 export const createCategorySchema = z.object({
