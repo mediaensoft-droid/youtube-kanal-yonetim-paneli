@@ -22,9 +22,15 @@ export type ActivityAction =
   | "member.status"
   | "auth.login"
   | "account.update"
-  | "account.password";
+  | "account.password"
+  | "task.create"
+  | "task.update"
+  | "task.move"
+  | "task.complete"
+  | "task.delete"
+  | "task.comment";
 
-/** Filter groups for the "İşlem türü" dropdown on /team/activity. `task` is reserved for (C). */
+/** Filter groups for the "İşlem türü" dropdown on /team/activity. */
 export const ACTIVITY_TYPES: Record<string, ActivityAction[]> = {
   channel: ["channel.create", "channel.update", "channel.status", "channel.delete", "channel.refresh"],
   taxonomy: [
@@ -38,7 +44,7 @@ export const ACTIVITY_TYPES: Record<string, ActivityAction[]> = {
   schedule: ["schedule.upsert", "schedule.delete", "schedule.pattern"],
   member: ["member.create", "member.update", "member.password", "member.status", "account.update", "account.password"],
   auth: ["auth.login"],
-  task: [],
+  task: ["task.create", "task.update", "task.move", "task.complete", "task.delete", "task.comment"],
 };
 
 export const ACTION_LABELS: Record<ActivityAction, string> = {
@@ -63,9 +69,15 @@ export const ACTION_LABELS: Record<ActivityAction, string> = {
   "auth.login": "Giriş yaptı",
   "account.update": "Hesabını güncelledi",
   "account.password": "Şifresini güncelledi",
+  "task.create": "Görev oluşturdu",
+  "task.update": "Görev düzenledi",
+  "task.move": "Görev taşıdı",
+  "task.complete": "Görev tamamladı",
+  "task.delete": "Görev sildi",
+  "task.comment": "Göreve yorum yazdı",
 };
 
-/** Turkish labels for `channel.update`'s details.changedFields entries. */
+/** Turkish labels for `channel.update`/`task.update`'s details.changedFields entries. */
 export const FIELD_LABELS: Record<string, string> = {
   categoryIds: "kategoriler",
   conceptIds: "konseptler",
@@ -76,6 +88,13 @@ export const FIELD_LABELS: Record<string, string> = {
   publishTime: "yayın saati",
   url: "URL",
   aiTools: "yapay zeka araçları", // reserved for (E)
+  title: "başlık",
+  description: "açıklama",
+  assigneeMemberId: "atanan kişi",
+  channelId: "kanal",
+  dueDate: "son tarih",
+  priority: "öncelik",
+  checklist: "kontrol listesi",
 };
 
 const SCHEDULE_STATUS_LABELS: Record<string, string> = {
@@ -174,6 +193,28 @@ export function describeActivity(item: ActivityDescribable): ActivityDescription
       return { subject: null, text: "hesabını güncelledi" };
     case "account.password":
       return { subject: null, text: "şifresini güncelledi" };
+    case "task.create":
+      return { subject: entityName, text: "görevini oluşturdu" };
+    case "task.update": {
+      const changedFields = Array.isArray(details.changedFields) ? (details.changedFields as unknown[]) : [];
+      const labels = changedFields
+        .filter((field): field is string => typeof field === "string")
+        .map((field) => FIELD_LABELS[field] ?? field);
+      return {
+        subject: entityName,
+        text: labels.length > 0 ? `görevini düzenledi (${labels.join(", ")})` : "görevini düzenledi",
+      };
+    }
+    case "task.move": {
+      const to = typeof details.to === "string" ? details.to : "";
+      return { subject: entityName, text: to ? `görevini ${to} sütununa taşıdı` : "görevini taşıdı" };
+    }
+    case "task.complete":
+      return { subject: entityName, text: "görevini tamamladı" };
+    case "task.delete":
+      return { subject: entityName, text: "görevini sildi" };
+    case "task.comment":
+      return { subject: entityName, text: "görevine yorum yazdı" };
     default:
       return { subject: entityName, text: item.action };
   }
