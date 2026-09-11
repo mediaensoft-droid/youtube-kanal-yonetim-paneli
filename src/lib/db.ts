@@ -159,7 +159,6 @@ async function bootstrapSchema(): Promise<void> {
     }
     await db.execute(`UPDATE channels SET status = 'passive' WHERE isActive = 0 AND status = 'active'`);
   }
-  await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_userId_status ON channels(userId, status)`);
 
   // A channel can now belong to several categories/concepts. `categoryIds`/`conceptIds` are JSON
   // arrays (same shape as languages/countries); the legacy single-value `categoryId`/`conceptId`
@@ -239,11 +238,8 @@ async function bootstrapSchema(): Promise<void> {
       }
     }
   }
-  await db.execute(`
-    UPDATE channels
-       SET createdByMemberId = (SELECT m.id FROM members m WHERE m.userId = channels.userId AND m.role = 'yonetici')
-     WHERE createdByMemberId IS NULL
-  `);
+  // Backfill deferred to after the multi-tenant rebuild below — channels.userId doesn't exist yet
+  // on a database that has never been through that rebuild (see the backfill after idx_channels_userId_status).
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS subscriptions (
@@ -422,6 +418,20 @@ async function bootstrapSchema(): Promise<void> {
       // ignore
     }
   }
+
+  // channels.userId is guaranteed to exist from here on (base column, or added by the multi-tenant
+  // rebuild above), so this index — needed by every userId-scoped channel query — is safe to create.
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_userId_status ON channels(userId, status)`);
+
+  // Who added a channel, backfilled to the workspace owner for pre-existing channels (the only
+  // possible actor before staff accounts existed). Deferred to here (rather than right after the
+  // members table above) because it reads channels.userId, which — like the index just above —
+  // isn't guaranteed to exist until the multi-tenant rebuild has run.
+  await db.execute(`
+    UPDATE channels
+       SET createdByMemberId = (SELECT m.id FROM members m WHERE m.userId = channels.userId AND m.role = 'yonetici')
+     WHERE createdByMemberId IS NULL
+  `);
 
   // One-time production data-ownership backfill: pre-multi-tenancy rows (userId IS NULL) are
   // attached to the operator's own account so existing data isn't orphaned. Safe to run every
