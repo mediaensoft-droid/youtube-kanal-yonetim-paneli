@@ -10,6 +10,7 @@ import { ColorPicker } from "@/components/ColorPicker";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CATEGORICAL_PALETTE } from "@/lib/colors";
+import { useActor } from "@/lib/useActor";
 
 interface ConceptsClientProps {
   initialConcepts: Concept[];
@@ -17,6 +18,7 @@ interface ConceptsClientProps {
 }
 
 export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClientProps) {
+  const { can } = useActor();
   const [concepts, setConcepts] = useState<Concept[]>(initialConcepts);
   const [counts, setCounts] = useState<Record<number, number>>(channelCounts);
 
@@ -111,9 +113,11 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
     <div>
       <div className="mb-6 flex items-center justify-between">
         <p className="text-sm text-ink-muted">Kanalların içerik konseptleri.</p>
-        <Button onClick={() => setAddOpen((o) => !o)}>
-          <Plus className="h-4 w-4" /> Konsept Ekle
-        </Button>
+        {can("taxonomy.write") && (
+          <Button onClick={() => setAddOpen((o) => !o)}>
+            <Plus className="h-4 w-4" /> Konsept Ekle
+          </Button>
+        )}
       </div>
 
       {addOpen && (
@@ -171,20 +175,22 @@ export function ConceptsClient({ initialConcepts, channelCounts }: ConceptsClien
                     {counts[concept.id] ?? 0} kanal
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => startEdit(concept)}
-                    className="rounded-md p-1.5 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(concept)}
-                    className="rounded-md p-1.5 text-red-400 transition-colors duration-150 hover:bg-red-950/40"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                {can("taxonomy.write") && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => startEdit(concept)}
+                      className="rounded-md p-1.5 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(concept)}
+                      className="rounded-md p-1.5 text-red-400 transition-colors duration-150 hover:bg-red-950/40"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

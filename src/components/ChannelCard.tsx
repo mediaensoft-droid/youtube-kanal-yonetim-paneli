@@ -26,6 +26,7 @@ import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
 import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
+import { useActor } from "@/lib/useActor";
 
 interface ChannelCardProps {
   channel: Channel;
@@ -39,6 +40,7 @@ interface ChannelCardProps {
 
 export function ChannelCard({ channel, categories, concepts, onRefreshed, onDeleted, onStatusChanged }: ChannelCardProps) {
   const router = useRouter();
+  const { can } = useActor();
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -209,23 +211,27 @@ export function ChannelCard({ channel, categories, concepts, onRefreshed, onDele
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-between gap-y-1 border-t border-line pt-3">
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-brand disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              Yenile
-            </button>
-            <div className="mr-2 flex items-center gap-0.5">
-              <Link
-                href={`/channels/${channel.id}/edit`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+            {can("channel.write") && (
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-brand disabled:opacity-50"
               >
-                <Pencil className="h-3.5 w-3.5" />
-              </Link>
-              {canToggle && (
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                Yenile
+              </button>
+            )}
+            <div className="mr-2 flex items-center gap-0.5">
+              {can("channel.write") && (
+                <Link
+                  href={`/channels/${channel.id}/edit`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Link>
+              )}
+              {canToggle && can("channel.write") && (
                 <button
                   onClick={handleToggleClick}
                   disabled={toggling}
@@ -239,16 +245,18 @@ export function ChannelCard({ channel, categories, concepts, onRefreshed, onDele
                   {isActive ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setConfirmOpen(true);
-                }}
-                disabled={deleting}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-400 transition-colors duration-150 hover:bg-red-950/40 disabled:opacity-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              {can("channel.delete") && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmOpen(true);
+                  }}
+                  disabled={deleting}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-400 transition-colors duration-150 hover:bg-red-950/40 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>

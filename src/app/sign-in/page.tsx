@@ -13,6 +13,7 @@ import { CardAura } from "@/components/CardAura";
 import { ChannelGrowthCard } from "@/components/ChannelGrowthCard";
 import { ScrollReveal } from "@/components/ScrollReveal";
 import { SignInButton } from "./SignInButton";
+import { StaffSignInForm } from "./StaffSignInForm";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,9 @@ export default async function SignInPage() {
               <SignInButton size="lg" />
             </div>
             <p className="text-xs text-ink-faint">Ücretsiz deneyin, kredi kartı gerekmez.</p>
+          </div>
+          <div className="mt-4">
+            <StaffSignInForm />
           </div>
 
           {channelCount > 0 && (

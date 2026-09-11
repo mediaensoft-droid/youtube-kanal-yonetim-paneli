@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { getSessionUserId } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listCategories } from "@/lib/db/categories";
 import { listConcepts } from "@/lib/db/concepts";
 import { ChannelForm } from "@/components/ChannelForm";
@@ -11,8 +10,8 @@ interface PageProps {
 }
 
 export default async function NewChannelPage({ searchParams }: PageProps) {
-  const userId = await getSessionUserId();
-  if (!userId) redirect("/sign-in");
+  const actor = await requirePageRole("channel.write");
+  const userId = actor.workspaceId;
 
   const { status } = await searchParams;
   const createStatus = status === "planned" ? "planned" : "active";

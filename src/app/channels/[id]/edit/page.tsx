@@ -1,5 +1,5 @@
-import { notFound, redirect } from "next/navigation";
-import { getSessionUserId } from "@/lib/auth";
+import { notFound } from "next/navigation";
+import { requirePageRole } from "@/lib/authz";
 import { getChannelById } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
 import { listConcepts } from "@/lib/db/concepts";
@@ -12,8 +12,8 @@ interface PageProps {
 }
 
 export default async function EditChannelPage({ params }: PageProps) {
-  const userId = await getSessionUserId();
-  if (!userId) redirect("/sign-in");
+  const actor = await requirePageRole("channel.write");
+  const userId = actor.workspaceId;
 
   const { id } = await params;
   const [channel, categories, concepts] = await Promise.all([

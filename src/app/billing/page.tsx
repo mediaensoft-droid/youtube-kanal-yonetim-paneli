@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
 import { CreditCard, CheckCircle2, AlertTriangle } from "lucide-react";
-import { getSessionUserId } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { getSubscriptionByUserId } from "@/lib/db/subscriptions";
 import { hasActiveAccess, getChannelLimit, getPlannedChannelLimit } from "@/lib/access";
 import { countChannelsForUser, countPlannedChannelsForUser } from "@/lib/db/channels";
@@ -22,8 +21,8 @@ interface PageProps {
 }
 
 export default async function BillingPage({ searchParams }: PageProps) {
-  const userId = await getSessionUserId();
-  if (!userId) redirect("/sign-in");
+  const actor = await requirePageRole("billing.view");
+  const userId = actor.workspaceId;
 
   const { status } = await searchParams;
 

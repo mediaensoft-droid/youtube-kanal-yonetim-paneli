@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSessionUserId } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { getUserById } from "@/lib/db/users";
 import { getSubscriptionByUserId } from "@/lib/db/subscriptions";
 import { ProfileClient } from "./ProfileClient";
@@ -7,8 +7,8 @@ import { ProfileClient } from "./ProfileClient";
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const userId = await getSessionUserId();
-  if (!userId) redirect("/sign-in");
+  const actor = await requirePageRole("billing.view");
+  const userId = actor.workspaceId;
 
   const [user, subscription] = await Promise.all([
     getUserById(userId),
