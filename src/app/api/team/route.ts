@@ -4,6 +4,7 @@ import { requirePermission, isResponse } from "@/lib/authz";
 import { createMemberSchema } from "@/lib/validation";
 import { listMembers, createMember, isUsernameTaken } from "@/lib/db/members";
 import { hashPassword } from "@/lib/password";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +36,16 @@ export async function POST(req: NextRequest) {
     role,
     passwordHash: await hashPassword(password),
   });
+
+  await logActivity(
+    { workspaceId: actor.workspaceId, memberId: actor.memberId },
+    {
+      action: "member.create",
+      entityType: "member",
+      entityId: member.id,
+      entityName: member.displayName,
+    }
+  );
+
   return okResponse(member, 201);
 }

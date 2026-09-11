@@ -3,6 +3,7 @@ import { okResponse, errorResponse } from "@/lib/http";
 import { requirePermission, isResponse } from "@/lib/authz";
 import { updateMemberSchema } from "@/lib/validation";
 import { getMemberById, updateMember } from "@/lib/db/members";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -31,5 +32,25 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   }
 
   const member = await updateMember(actor.workspaceId, memberId, parsed.data);
+
+  const statusChanged = parsed.data.status !== undefined && parsed.data.status !== existing.status;
+  await logActivity(
+    { workspaceId: actor.workspaceId, memberId: actor.memberId },
+    statusChanged
+      ? {
+          action: "member.status",
+          entityType: "member",
+          entityId: member.id,
+          entityName: member.displayName,
+          details: { from: existing.status, to: parsed.data.status },
+        }
+      : {
+          action: "member.update",
+          entityType: "member",
+          entityId: member.id,
+          entityName: member.displayName,
+        }
+  );
+
   return okResponse(member);
 }

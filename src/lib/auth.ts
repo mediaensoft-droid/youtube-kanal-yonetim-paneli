@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import { getOrCreateUserByEmail, getUserById } from "@/lib/db/users";
 import { ensureTrialSubscription } from "@/lib/db/subscriptions";
 import { ensureOwnerMember, getMemberById, getMemberByUsername, touchMemberLogin } from "@/lib/db/members";
+import { logActivity } from "@/lib/db/activity";
 import { verifyPassword } from "@/lib/password";
 import { hasActiveAccess } from "@/lib/access";
 import { staffLoginSchema } from "@/lib/validation";
@@ -42,6 +43,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (member.status !== "active") throw new DisabledError();
         if (!(await hasActiveAccess(member.userId))) throw new NoAccessError();
         await touchMemberLogin(member.id);
+        await logActivity(
+          { workspaceId: member.userId, memberId: member.id },
+          { action: "auth.login", entityType: "auth" }
+        );
         // `id` must be a string for NextAuth; the workspace/member ids ride along for the jwt callback.
         return { id: String(member.userId), name: member.displayName, workspaceId: member.userId, memberId: member.id, role: member.role };
       },
@@ -70,6 +75,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.memberId = owner.id;
         token.role = "yonetici";
         token.displayName = owner.displayName;
+        // `user` is only set on the actual sign-in request, never on later JWT refreshes — so
+        // this only fires once per real login, same as the staff branch above.
+        await logActivity({ workspaceId: dbUser.id, memberId: owner.id }, { action: "auth.login", entityType: "auth" });
       }
       // Tokens minted before the members table existed carry userId only. They belong to
       // Google owners, so backfill the member fields instead of treating them as disabled staff.

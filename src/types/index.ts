@@ -1,3 +1,5 @@
+import type { ActivityAction } from "@/lib/activity";
+
 export interface Category {
   id: number;
   name: string;
@@ -151,5 +153,20 @@ export interface UpsertChannelMonthPatternInput {
   channelId: number;
   yearMonth: string;
   publishDays: number[];
+}
+
+export type ActivityEntityType = "channel" | "category" | "concept" | "schedule" | "member" | "auth" | "task";
+
+export interface ActivityItem {
+  id: number;
+  memberId: number | null;
+  /** Live join on members.displayName — null when the actor was removed since. */
+  memberName: string | null;
+  action: ActivityAction;
+  entityType: ActivityEntityType;
+  entityId: number | null;
+  entityName: string | null;
+  details: Record<string, unknown>;
+  createdAt: string;
 }
 

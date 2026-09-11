@@ -4,6 +4,7 @@ import { requirePermission, isResponse } from "@/lib/authz";
 import { setMemberPasswordSchema } from "@/lib/validation";
 import { getMemberById, setMemberPasswordHash } from "@/lib/db/members";
 import { hashPassword } from "@/lib/password";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -32,5 +33,16 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   }
 
   await setMemberPasswordHash(actor.workspaceId, memberId, await hashPassword(parsed.data.password));
+
+  await logActivity(
+    { workspaceId: actor.workspaceId, memberId: actor.memberId },
+    {
+      action: "member.password",
+      entityType: "member",
+      entityId: memberId,
+      entityName: existing.displayName,
+    }
+  );
+
   return new Response(null, { status: 204 });
 }

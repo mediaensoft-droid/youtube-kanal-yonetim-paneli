@@ -5,6 +5,7 @@ import { requirePermission, isResponse } from "@/lib/authz";
 import { upsertChannelMonthPatternSchema } from "@/lib/validation";
 import { listChannelMonthPatterns, upsertChannelMonthPattern } from "@/lib/db/channelMonthPatterns";
 import { getChannelById } from "@/lib/db/channels";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -40,5 +41,17 @@ export async function POST(req: NextRequest) {
     parsed.data.yearMonth,
     parsed.data.publishDays
   );
+
+  await logActivity(
+    { workspaceId: userId, memberId: actor.memberId },
+    {
+      action: "schedule.pattern",
+      entityType: "schedule",
+      entityId: pattern.id,
+      entityName: channel.name,
+      details: { yearMonth: parsed.data.yearMonth },
+    }
+  );
+
   return okResponse(pattern, 201);
 }

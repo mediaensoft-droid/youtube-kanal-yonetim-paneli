@@ -4,6 +4,7 @@ import { getSessionUserId } from "@/lib/auth";
 import { requirePermission, isResponse } from "@/lib/authz";
 import { createConceptSchema } from "@/lib/validation";
 import { listConcepts, createConcept } from "@/lib/db/concepts";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,15 @@ export async function POST(req: NextRequest) {
 
   try {
     const concept = await createConcept(userId, parsed.data);
+    await logActivity(
+      { workspaceId: userId, memberId: actor.memberId },
+      {
+        action: "concept.create",
+        entityType: "concept",
+        entityId: concept.id,
+        entityName: concept.name,
+      }
+    );
     return okResponse(concept, 201);
   } catch {
     return errorResponse(409, "Bu isimde bir konsept zaten var.");

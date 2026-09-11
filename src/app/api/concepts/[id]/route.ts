@@ -3,6 +3,7 @@ import { okResponse, errorResponse } from "@/lib/http";
 import { requirePermission, isResponse } from "@/lib/authz";
 import { updateConceptSchema } from "@/lib/validation";
 import { getConceptById, updateConcept, deleteConcept } from "@/lib/db/concepts";
+import { logActivity } from "@/lib/db/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,15 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   try {
     const concept = await updateConcept(userId, conceptId, parsed.data);
+    await logActivity(
+      { workspaceId: userId, memberId: actor.memberId },
+      {
+        action: "concept.update",
+        entityType: "concept",
+        entityId: concept.id,
+        entityName: concept.name,
+      }
+    );
     return okResponse(concept);
   } catch {
     return errorResponse(409, "Bu isimde bir konsept zaten var.");
@@ -45,5 +55,16 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   if (!existing) return errorResponse(404, "Konsept bulunamadı");
 
   await deleteConcept(userId, conceptId);
+
+  await logActivity(
+    { workspaceId: userId, memberId: actor.memberId },
+    {
+      action: "concept.delete",
+      entityType: "concept",
+      entityId: conceptId,
+      entityName: existing.name,
+    }
+  );
+
   return new Response(null, { status: 204 });
 }
