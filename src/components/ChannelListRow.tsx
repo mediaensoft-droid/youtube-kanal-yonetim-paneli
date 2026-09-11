@@ -25,6 +25,7 @@ import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { formatCompactNumber } from "@/lib/format";
 import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
+import { useActor } from "@/lib/useActor";
 
 interface ChannelListRowProps {
   channel: Channel;
@@ -38,6 +39,7 @@ interface ChannelListRowProps {
 
 export function ChannelListRow({ channel, categories, concepts, onRefreshed, onDeleted, onStatusChanged }: ChannelListRowProps) {
   const router = useRouter();
+  const { can } = useActor();
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -160,14 +162,16 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-1 border-t border-line pt-2 sm:border-t-0 sm:pt-0">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            title="Yenile"
-            className="flex items-center gap-1 rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-brand disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-          </button>
+          {can("channel.write") && (
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Yenile"
+              className="flex items-center gap-1 rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-brand disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+          )}
           <Link
             href={`/channels/${channel.id}`}
             onClick={(e) => e.stopPropagation()}
@@ -176,14 +180,16 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
           >
             <BarChart3 className="h-4 w-4" />
           </Link>
-          <Link
-            href={`/channels/${channel.id}/edit`}
-            onClick={(e) => e.stopPropagation()}
-            title="Düzenle"
-            className="flex items-center gap-1 rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-          >
-            <Pencil className="h-4 w-4" />
-          </Link>
+          {can("channel.write") && (
+            <Link
+              href={`/channels/${channel.id}/edit`}
+              onClick={(e) => e.stopPropagation()}
+              title="Düzenle"
+              className="flex items-center gap-1 rounded-md p-2 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+            >
+              <Pencil className="h-4 w-4" />
+            </Link>
+          )}
           <a
             href={studioCustomizeUrl(channel.youtubeId)}
             target="_blank"
@@ -204,7 +210,7 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
           >
             <ListVideo className="h-4 w-4" />
           </a>
-          {canToggle && (
+          {canToggle && can("channel.write") && (
             <button
               onClick={handleToggleClick}
               disabled={toggling}
@@ -218,17 +224,19 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
               {isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setConfirmOpen(true);
-            }}
-            disabled={deleting}
-            title="Sil"
-            className="flex items-center gap-1 rounded-md p-2 text-red-400 transition-colors duration-150 hover:bg-red-950/40 disabled:opacity-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {can("channel.delete") && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmOpen(true);
+              }}
+              disabled={deleting}
+              title="Sil"
+              className="flex items-center gap-1 rounded-md p-2 text-red-400 transition-colors duration-150 hover:bg-red-950/40 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 

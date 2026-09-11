@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getSessionUserId } from "@/lib/auth";
+import { getSessionActor } from "@/lib/auth";
+import { can } from "@/lib/roles";
 import { listChannels } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
 import { listConcepts } from "@/lib/db/concepts";
@@ -8,8 +9,9 @@ import { CalendarClient } from "./CalendarClient";
 export const dynamic = "force-dynamic";
 
 export default async function CalendarPage() {
-  const userId = await getSessionUserId();
-  if (!userId) redirect("/sign-in");
+  const actor = await getSessionActor();
+  if (!actor) redirect("/sign-in");
+  const userId = actor.workspaceId;
 
   const [channels, categories, concepts] = await Promise.all([
     listChannels(userId),
@@ -17,5 +19,12 @@ export default async function CalendarPage() {
     listConcepts(userId),
   ]);
 
-  return <CalendarClient initialChannels={channels} categories={categories} concepts={concepts} />;
+  return (
+    <CalendarClient
+      initialChannels={channels}
+      categories={categories}
+      concepts={concepts}
+      readOnly={!can(actor.role, "schedule.write")}
+    />
+  );
 }

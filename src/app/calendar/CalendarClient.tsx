@@ -19,6 +19,8 @@ interface CalendarClientProps {
   initialChannels: Channel[];
   categories: Category[];
   concepts: Concept[];
+  /** True when the actor lacks schedule.write — viewing stays allowed, all writes are hidden/blocked. */
+  readOnly: boolean;
 }
 
 const MONTH_LABELS = [
@@ -65,7 +67,7 @@ function monthRange(year: number, month: number) {
   return { first, last };
 }
 
-export function CalendarClient({ initialChannels, categories, concepts }: CalendarClientProps) {
+export function CalendarClient({ initialChannels, categories, concepts, readOnly }: CalendarClientProps) {
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
@@ -190,6 +192,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   }
 
   function toggleChannelDay(channel: Channel, iso: number) {
+    if (readOnly) return;
     const base = effectivePublishDays(channel, currentYearMonth);
     const next = base.includes(iso) ? base.filter((d) => d !== iso) : [...base, iso].sort((a, b) => a - b);
 
@@ -250,6 +253,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
     title: string | null;
     notes: string | null;
   }) {
+    if (readOnly) return;
     try {
       const res = await fetch("/api/schedule", {
         method: "POST",
@@ -266,6 +270,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   }
 
   async function quickSetStatus(channelId: number, date: string, status: ScheduleStatus) {
+    if (readOnly) return;
     const existing = entries.find((e) => e.channelId === channelId && e.date === date);
     await saveEntry({
       channelId,
@@ -278,6 +283,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   }
 
   function openContextMenu(e: React.MouseEvent, date: string, channelId: number) {
+    if (readOnly) return;
     e.preventDefault();
     const menuWidth = 168;
     const menuHeight = 132;
@@ -303,6 +309,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
   }
 
   async function removeEntry(entry: ScheduleEntry) {
+    if (readOnly) return;
     try {
       const res = await fetch(`/api/schedule/${entry.id}`, { method: "DELETE" });
       if (!res.ok && res.status !== 204) throw new Error("Silinemedi");
@@ -403,6 +410,21 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                 <div className="flex flex-wrap gap-1">
                   {WEEKDAYS.map((day) => {
                     const active = effectivePublishDays(channel, currentYearMonth).includes(day.iso);
+                    if (readOnly) {
+                      return (
+                        <span
+                          key={day.iso}
+                          className={clsx(
+                            "rounded-md border px-2 py-1 text-xs font-medium",
+                            active
+                              ? "border-brand/50 bg-brand/20 text-ink-muted"
+                              : "border-line bg-surface-2 text-ink-faint"
+                          )}
+                        >
+                          {day.short}
+                        </span>
+                      );
+                    }
                     return (
                       <button
                         key={day.iso}
@@ -496,13 +518,15 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                         </span>
                         <span className="text-sm font-medium text-ink">{weekday?.label}</span>
                       </div>
-                      <button
-                        onClick={() => setActiveSlot({ date: key, channelId: null })}
-                        className="rounded p-1.5 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-                        aria-label="Video ekle"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
+                      {!readOnly && (
+                        <button
+                          onClick={() => setActiveSlot({ date: key, channelId: null })}
+                          className="rounded p-1.5 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                          aria-label="Video ekle"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                     {slots.length === 0 ? (
                       <p className="text-xs text-ink-faint">Bu gün için planlanan video yok.</p>
@@ -511,6 +535,31 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                         {slots.map((slot) => {
                           const status = slot.entry?.status ?? "planned";
                           const meta = STATUS_META[status];
+                          const content = (
+                            <>
+                              <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={slot.channel.thumbnailUrl}
+                                alt=""
+                                className="h-4 w-4 shrink-0 rounded-full object-cover"
+                              />
+                              <span className="truncate">{slot.channel.name}</span>
+                            </>
+                          );
+                          if (readOnly) {
+                            return (
+                              <div
+                                key={slot.channel.id}
+                                className={clsx(
+                                  "flex w-full items-center gap-2 truncate rounded border px-2.5 py-2 text-left text-sm",
+                                  meta.chip
+                                )}
+                              >
+                                {content}
+                              </div>
+                            );
+                          }
                           return (
                             <button
                               key={slot.channel.id}
@@ -520,14 +569,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                                 meta.chip
                               )}
                             >
-                              <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={slot.channel.thumbnailUrl}
-                                alt=""
-                                className="h-4 w-4 shrink-0 rounded-full object-cover"
-                              />
-                              <span className="truncate">{slot.channel.name}</span>
+                              {content}
                             </button>
                           );
                         })}
@@ -569,18 +611,46 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                     >
                       {date.getDate()}
                     </span>
-                    <button
-                      onClick={() => setActiveSlot({ date: key, channelId: null })}
-                      className="rounded p-1 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
-                      aria-label="Video ekle"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => setActiveSlot({ date: key, channelId: null })}
+                        className="rounded p-1 text-ink-faint transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+                        aria-label="Video ekle"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     {slots.map((slot) => {
                       const status = slot.entry?.status ?? "planned";
                       const meta = STATUS_META[status];
+                      const content = (
+                        <>
+                          <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={slot.channel.thumbnailUrl}
+                            alt=""
+                            className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
+                          />
+                          <span className="truncate">{slot.channel.name}</span>
+                        </>
+                      );
+                      if (readOnly) {
+                        return (
+                          <div
+                            key={slot.channel.id}
+                            className={clsx(
+                              "flex w-full items-center gap-1.5 truncate rounded border px-2 py-1 text-left text-xs",
+                              meta.chip
+                            )}
+                            title={slotTooltip(slot, date)}
+                          >
+                            {content}
+                          </div>
+                        );
+                      }
                       return (
                         <button
                           key={slot.channel.id}
@@ -592,14 +662,7 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
                           )}
                           title={slotTooltip(slot, date)}
                         >
-                          <span className={clsx("h-2 w-2 shrink-0 rounded-full", meta.dot)} />
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={slot.channel.thumbnailUrl}
-                            alt=""
-                            className="h-3.5 w-3.5 shrink-0 rounded-full object-cover"
-                          />
-                          <span className="truncate">{slot.channel.name}</span>
+                          {content}
                         </button>
                       );
                     })}

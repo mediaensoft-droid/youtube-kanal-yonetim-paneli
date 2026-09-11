@@ -14,12 +14,17 @@ import {
   CreditCard,
   CalendarDays,
   UserRound,
+  Users,
 } from "lucide-react";
 
-const links = [
+const BASE_LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/channels", label: "Kanallar", icon: Tv },
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
+];
+
+const OWNER_ONLY_LINKS = [
+  { href: "/team", label: "Personel", icon: Users },
   { href: "/billing", label: "Üyelik", icon: CreditCard },
 ];
 
@@ -36,6 +41,11 @@ export function Nav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: session } = useSession();
+  const role = session?.member?.role;
+  const isOwner = role === "yonetici";
+  const links = isOwner ? [...BASE_LINKS, ...OWNER_ONLY_LINKS] : BASE_LINKS;
+  const accountHref = isOwner ? "/profile" : "/account";
+  const accountLabel = isOwner ? "Profil" : "Hesabım";
 
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur supports-[backdrop-filter]:bg-canvas/70">
@@ -71,8 +81,8 @@ export function Nav() {
         {session?.user && (
           <div className="hidden items-center gap-2 border-l border-line pl-3 ml-1 sm:flex">
             <Link
-              href="/profile"
-              title="Profil"
+              href={accountHref}
+              title={accountLabel}
               className="rounded-full transition-opacity duration-150 hover:opacity-80"
             >
               {session.user.image ? (
@@ -133,17 +143,17 @@ export function Nav() {
           {session?.user && (
             <>
               <Link
-                href="/profile"
+                href={accountHref}
                 onClick={() => setMenuOpen(false)}
                 className={clsx(
                   "flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors duration-150",
-                  pathname.startsWith("/profile")
+                  pathname.startsWith(accountHref)
                     ? "bg-brand text-white"
                     : "text-ink-muted hover:bg-surface-hover hover:text-ink"
                 )}
               >
                 <UserRound className="h-4 w-4" />
-                Profil
+                {accountLabel}
               </Link>
               <button
                 type="button"
