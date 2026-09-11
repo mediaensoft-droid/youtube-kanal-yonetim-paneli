@@ -1,0 +1,30 @@
+import { describe, it, expect } from "vitest";
+import { can, isMemberRole, STAFF_ROLES } from "@/lib/roles";
+
+describe("can()", () => {
+  it("yonetici can do everything", () => {
+    for (const p of ["channel.write", "channel.delete", "taxonomy.write", "schedule.write", "team.manage", "billing.view"] as const) {
+      expect(can("yonetici", p)).toBe(true);
+    }
+  });
+  it("vekil: everything except team/billing", () => {
+    expect(can("vekil", "channel.delete")).toBe(true);
+    expect(can("vekil", "team.manage")).toBe(false);
+    expect(can("vekil", "billing.view")).toBe(false);
+  });
+  it("duzenleyici: writes but no delete", () => {
+    expect(can("duzenleyici", "channel.write")).toBe(true);
+    expect(can("duzenleyici", "schedule.write")).toBe(true);
+    expect(can("duzenleyici", "channel.delete")).toBe(false);
+  });
+  it("goruntuleyici: read-only", () => {
+    expect(can("goruntuleyici", "channel.write")).toBe(false);
+    expect(can("goruntuleyici", "taxonomy.write")).toBe(false);
+    expect(can("goruntuleyici", "schedule.write")).toBe(false);
+  });
+  it("role guard", () => {
+    expect(isMemberRole("vekil")).toBe(true);
+    expect(isMemberRole("admin")).toBe(false);
+    expect(STAFF_ROLES).not.toContain("yonetici");
+  });
+});
