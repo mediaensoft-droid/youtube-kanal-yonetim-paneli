@@ -88,6 +88,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const userId = Number(token.userId);
       if (session.user && userId) {
         session.user.id = String(userId);
+        // Staff role/name come from the live member row (see below) so a promotion/demotion
+        // takes effect immediately instead of after the JWT expires; owners keep token.role.
+        let liveRole: MemberRole | undefined;
         if (token.role === "yonetici") {
           // The DB row (editable on /profile) is the source of truth for name/image, not
           // whatever Google's token happened to carry at sign-in time.
@@ -106,10 +109,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
           session.user.name = member.displayName;
           session.user.image = null;
+          liveRole = member.role;
         }
         session.member = {
           id: Number(token.memberId),
-          role: (token.role ?? "yonetici") as MemberRole,
+          role: liveRole ?? token.role ?? "yonetici",
           displayName: session.user.name ?? "",
         };
       }

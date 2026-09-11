@@ -4,7 +4,8 @@ import type { MemberRole } from "@/lib/roles";
 declare module "next-auth" {
   interface Session {
     user: { id: string } & DefaultSession["user"];
-    member: { id: number; role: MemberRole; displayName: string };
+    /** Absent when a staff member has been disabled/removed after sign-in (id is blanked too). */
+    member?: { id: number; role: MemberRole; displayName: string };
   }
   interface User {
     /** Set by the Credentials provider so the jwt callback can attribute the workspace. */
