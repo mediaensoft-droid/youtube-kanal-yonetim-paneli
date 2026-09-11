@@ -91,3 +91,18 @@ export const usernameSchema = z
   .regex(USERNAME_RE, "Kullanıcı adı 3-30 karakter olmalı; küçük harf, rakam, nokta, alt çizgi ve tire kullanılabilir");
 export const passwordSchema = z.string().min(8, "Şifre en az 8 karakter olmalı");
 export const staffLoginSchema = z.object({ username: usernameSchema, password: z.string().min(1) });
+
+export const createMemberSchema = z.object({
+  displayName: z.string().trim().min(1, "Ad gerekli").max(60),
+  username: usernameSchema,
+  password: passwordSchema,
+  role: z.enum(["vekil", "duzenleyici", "goruntuleyici"]),
+});
+
+export const updateMemberSchema = z.object({
+  displayName: z.string().trim().min(1, "Ad gerekli").max(60).optional(),
+  role: z.enum(["vekil", "duzenleyici", "goruntuleyici"]).optional(),
+  status: z.enum(["active", "disabled"]).optional(),
+});
+
+export const setMemberPasswordSchema = z.object({ password: passwordSchema });
