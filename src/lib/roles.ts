@@ -16,12 +16,23 @@ export type Permission =
   | "taxonomy.write" // categories & concepts
   | "schedule.write" // calendar entries + publish-day patterns
   | "team.manage" // /team + member APIs
-  | "billing.view"; // /billing, /profile (owner-only areas)
+  | "billing.view" // /billing, /profile (owner-only areas)
+  | "task.write" // task board: columns + cards create/edit/move/comment
+  | "task.delete"; // task board: card delete (column delete only requires task.write)
 
 const MATRIX: Record<MemberRole, Permission[]> = {
-  yonetici: ["channel.write", "channel.delete", "taxonomy.write", "schedule.write", "team.manage", "billing.view"],
-  vekil: ["channel.write", "channel.delete", "taxonomy.write", "schedule.write"],
-  duzenleyici: ["channel.write", "taxonomy.write", "schedule.write"],
+  yonetici: [
+    "channel.write",
+    "channel.delete",
+    "taxonomy.write",
+    "schedule.write",
+    "team.manage",
+    "billing.view",
+    "task.write",
+    "task.delete",
+  ],
+  vekil: ["channel.write", "channel.delete", "taxonomy.write", "schedule.write", "task.write", "task.delete"],
+  duzenleyici: ["channel.write", "taxonomy.write", "schedule.write", "task.write"],
   goruntuleyici: [],
 };
 

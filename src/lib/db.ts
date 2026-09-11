@@ -240,6 +240,56 @@ async function bootstrapSchema(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_activity_log_userId_memberId_createdAt ON activity_log(userId, memberId, createdAt)`
   );
 
+  // Task board (C): Trello-style columns + cards per workspace. isDone marks the column(s) whose
+  // cards count as completed (drives tasks.completedAt and the task.complete activity log).
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS task_columns (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name      TEXT NOT NULL,
+      position  INTEGER NOT NULL DEFAULT 0,
+      isDone    INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_task_columns_userId_position ON task_columns(userId, position)`
+  );
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      columnId          INTEGER NOT NULL REFERENCES task_columns(id) ON DELETE CASCADE,
+      title             TEXT NOT NULL,
+      description       TEXT,
+      assigneeMemberId  INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      channelId         INTEGER REFERENCES channels(id) ON DELETE SET NULL,
+      dueDate           TEXT,
+      priority          TEXT NOT NULL DEFAULT 'normal',
+      position          INTEGER NOT NULL DEFAULT 0,
+      checklist         TEXT NOT NULL DEFAULT '[]',
+      createdByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      completedAt       TEXT,
+      createdAt         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_tasks_userId_columnId_position ON tasks(userId, columnId, position)`
+  );
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS task_comments (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      taskId    INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      memberId  INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      body      TEXT NOT NULL,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(`CREATE INDEX IF NOT EXISTS idx_task_comments_taskId ON task_comments(taskId)`);
+
   // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
   await db.execute(`
     INSERT INTO members (userId, role, displayName)

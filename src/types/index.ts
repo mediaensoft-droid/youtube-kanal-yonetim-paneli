@@ -170,3 +170,45 @@ export interface ActivityItem {
   createdAt: string;
 }
 
+export interface TaskColumn {
+  id: number;
+  name: string;
+  position: number;
+  isDone: boolean;
+  createdAt: string;
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export type TaskPriority = "low" | "normal" | "high";
+
+export interface Task {
+  id: number;
+  columnId: number;
+  title: string;
+  description: string | null;
+  assigneeMemberId: number | null;
+  channelId: number | null;
+  dueDate: string | null;
+  priority: TaskPriority;
+  position: number;
+  checklist: ChecklistItem[];
+  createdByMemberId: number | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskComment {
+  id: number;
+  taskId: number;
+  memberId: number | null;
+  memberName: string | null;
+  body: string;
+  createdAt: string;
+}
+
