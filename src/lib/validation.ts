@@ -2,18 +2,20 @@ import { z } from "zod";
 
 const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Geçerli bir hex renk kodu girin (#RRGGBB)");
 
+const idList = z.array(z.number().int().positive()).optional();
+
 export const createChannelSchema = z.object({
   input: z.string().trim().min(1, "YouTube URL veya kanal ID'si gerekli"),
-  categoryId: z.number().int().nullable().optional(),
-  conceptId: z.number().int().nullable().optional(),
+  categoryIds: idList,
+  conceptIds: idList,
   languages: z.array(z.string()).optional(),
   countries: z.array(z.string()).optional(),
   notes: z.string().nullable().optional(),
 });
 
 export const updateChannelSchema = z.object({
-  categoryId: z.number().int().nullable().optional(),
-  conceptId: z.number().int().nullable().optional(),
+  categoryIds: idList,
+  conceptIds: idList,
   languages: z.array(z.string()).optional(),
   countries: z.array(z.string()).optional(),
   notes: z.string().nullable().optional(),

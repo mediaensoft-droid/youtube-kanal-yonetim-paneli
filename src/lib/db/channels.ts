@@ -11,8 +11,8 @@ interface ChannelRow {
   subscriberCount: number | null;
   videoCount: number | null;
   viewCount: number | null;
-  categoryId: number | null;
-  conceptId: number | null;
+  categoryIds: string;
+  conceptIds: string;
   languages: string;
   countries: string;
   notes: string | null;
@@ -38,8 +38,8 @@ function rowToChannel(row: ChannelRow): Channel {
     subscriberCount: row.subscriberCount,
     videoCount: row.videoCount,
     viewCount: row.viewCount,
-    categoryId: row.categoryId,
-    conceptId: row.conceptId,
+    categoryIds: JSON.parse(row.categoryIds) as number[],
+    conceptIds: JSON.parse(row.conceptIds) as number[],
     languages: JSON.parse(row.languages) as string[],
     countries: JSON.parse(row.countries) as string[],
     notes: row.notes,
@@ -62,12 +62,13 @@ export async function listChannels(userId: number, filters?: ChannelFilters): Pr
   if (status === "active") conditions.push(`isActive = 1`);
   else if (status === "passive") conditions.push(`isActive = 0`);
 
+  // "Has this category/concept" — a channel can carry several, so match inside the JSON array.
   if (filters?.categoryId !== undefined) {
-    conditions.push(`categoryId = ?`);
+    conditions.push(`EXISTS (SELECT 1 FROM json_each(categoryIds) WHERE value = ?)`);
     params.push(filters.categoryId);
   }
   if (filters?.conceptId !== undefined) {
-    conditions.push(`conceptId = ?`);
+    conditions.push(`EXISTS (SELECT 1 FROM json_each(conceptIds) WHERE value = ?)`);
     params.push(filters.conceptId);
   }
   if (filters?.language) {
@@ -156,8 +157,8 @@ export interface CreateChannelRecord {
   subscriberCount: number | null;
   videoCount: number | null;
   viewCount: number | null;
-  categoryId: number | null;
-  conceptId: number | null;
+  categoryIds: number[];
+  conceptIds: number[];
   languages: string[];
   countries: string[];
   notes: string | null;
@@ -166,7 +167,7 @@ export interface CreateChannelRecord {
 export async function createChannel(userId: number, input: CreateChannelRecord): Promise<Channel> {
   const result = await run(
     `INSERT INTO channels
-      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryId, conceptId, languages, countries, notes)
+      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryIds, conceptIds, languages, countries, notes)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
@@ -177,8 +178,8 @@ export async function createChannel(userId: number, input: CreateChannelRecord):
       input.subscriberCount,
       input.videoCount,
       input.viewCount,
-      input.categoryId,
-      input.conceptId,
+      JSON.stringify(input.categoryIds),
+      JSON.stringify(input.conceptIds),
       JSON.stringify(input.languages),
       JSON.stringify(input.countries),
       input.notes,
@@ -188,8 +189,8 @@ export async function createChannel(userId: number, input: CreateChannelRecord):
 }
 
 export interface UpdateChannelManualFields {
-  categoryId?: number | null;
-  conceptId?: number | null;
+  categoryIds?: number[];
+  conceptIds?: number[];
   languages?: string[];
   countries?: string[];
   notes?: string | null;
@@ -207,8 +208,8 @@ export async function updateChannelManualFields(
   if (!existing) {
     throw new Error(`Channel ${id} not found`);
   }
-  const categoryId = input.categoryId !== undefined ? input.categoryId : existing.categoryId;
-  const conceptId = input.conceptId !== undefined ? input.conceptId : existing.conceptId;
+  const categoryIds = input.categoryIds ?? existing.categoryIds;
+  const conceptIds = input.conceptIds ?? existing.conceptIds;
   const languages = input.languages ?? existing.languages;
   const countries = input.countries ?? existing.countries;
   const notes = input.notes !== undefined ? input.notes : existing.notes;
@@ -218,11 +219,11 @@ export async function updateChannelManualFields(
 
   await run(
     `UPDATE channels
-       SET categoryId = ?, conceptId = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, publishTime = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       SET categoryIds = ?, conceptIds = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, publishTime = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE id = ? AND userId = ?`,
     [
-      categoryId,
-      conceptId,
+      JSON.stringify(categoryIds),
+      JSON.stringify(conceptIds),
       JSON.stringify(languages),
       JSON.stringify(countries),
       notes,

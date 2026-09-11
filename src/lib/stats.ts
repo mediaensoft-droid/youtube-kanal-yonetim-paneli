@@ -26,9 +26,10 @@ export function countByCategory(
   const categoryById = new Map(categories.map((c) => [c.id, c]));
   const counts = new Map<number | null, number>();
 
+  // A channel with several categories counts once in each; one with none lands in "Kategorisiz".
   for (const channel of channels) {
-    const key = channel.categoryId;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const keys: (number | null)[] = channel.categoryIds.length > 0 ? channel.categoryIds : [null];
+    for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
   const entries: CategoryDistributionEntry[] = [];

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
-import { CategoryBadge } from "@/components/CategoryBadge";
+import { ChannelTagBadges } from "@/components/ChannelTagBadges";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
 import { ChannelPassiveWarning } from "@/components/ChannelPassiveWarning";
@@ -29,15 +29,15 @@ import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
 
 interface ChannelCardProps {
   channel: Channel;
-  category: Category | undefined;
-  concept: Concept | undefined;
+  categories: Category[];
+  concepts: Concept[];
   onRefreshed: (channel: Channel) => void;
   onDeleted: (id: number) => void;
   /** Fired after the channel flips active⇄passive; the list drops it since it now belongs to the other screen. */
   onStatusChanged: (id: number) => void;
 }
 
-export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted, onStatusChanged }: ChannelCardProps) {
+export function ChannelCard({ channel, categories, concepts, onRefreshed, onDeleted, onStatusChanged }: ChannelCardProps) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -150,12 +150,7 @@ export function ChannelCard({ channel, category, concept, onRefreshed, onDeleted
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {category ? (
-              <CategoryBadge name={category.name} color={category.color} />
-            ) : (
-              <span className="text-xs text-ink-faint">Kategorisiz</span>
-            )}
-            {concept && <CategoryBadge name={concept.name} color={concept.color} />}
+            <ChannelTagBadges categories={categories} concepts={concepts} />
           </div>
 
           {(channel.languages.length > 0 || channel.countries.length > 0) && (

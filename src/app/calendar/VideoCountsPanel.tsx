@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Video } from "lucide-react";
 import type { Category, Channel, Concept } from "@/types";
-import { CategoryBadge } from "@/components/CategoryBadge";
+import { ChannelTagBadges } from "@/components/ChannelTagBadges";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { getLanguageName } from "@/lib/constants/languages";
@@ -36,8 +36,8 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
     return channels
       .filter((c) => {
         if (q && !c.name.toLowerCase().includes(q)) return false;
-        if (categoryFilter && String(c.categoryId ?? "") !== categoryFilter) return false;
-        if (conceptFilter && String(c.conceptId ?? "") !== conceptFilter) return false;
+        if (categoryFilter && !c.categoryIds.includes(Number(categoryFilter))) return false;
+        if (conceptFilter && !c.conceptIds.includes(Number(conceptFilter))) return false;
         if (languageFilter && !c.languages.includes(languageFilter)) return false;
         return true;
       })
@@ -116,8 +116,8 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
             </thead>
             <tbody>
               {rows.map((channel) => {
-                const category = channel.categoryId ? categoryById.get(channel.categoryId) : undefined;
-                const concept = channel.conceptId ? conceptById.get(channel.conceptId) : undefined;
+                const channelCategories = channel.categoryIds.flatMap((id) => categoryById.get(id) ?? []);
+                const channelConcepts = channel.conceptIds.flatMap((id) => conceptById.get(id) ?? []);
                 return (
                   <tr key={channel.id} className="border-b border-line bg-surface-2/40 last:border-b-0">
                     <td className="px-4 py-2.5">
@@ -142,18 +142,14 @@ export function VideoCountsPanel({ channels, categories, concepts }: VideoCounts
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
-                      {category ? (
-                        <CategoryBadge name={category.name} color={category.color} />
-                      ) : (
-                        <span className="text-xs text-ink-faint">—</span>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        <ChannelTagBadges categories={channelCategories} concepts={[]} emptyLabel="—" />
+                      </div>
                     </td>
                     <td className="px-4 py-2.5">
-                      {concept ? (
-                        <CategoryBadge name={concept.name} color={concept.color} />
-                      ) : (
-                        <span className="text-xs text-ink-faint">—</span>
-                      )}
+                      <div className="flex flex-wrap gap-1">
+                        <ChannelTagBadges categories={[]} concepts={channelConcepts} emptyLabel="—" />
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <Link

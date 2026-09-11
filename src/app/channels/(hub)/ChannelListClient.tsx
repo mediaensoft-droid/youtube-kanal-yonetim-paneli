@@ -122,6 +122,10 @@ export function ChannelListClient({
 
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const conceptById = useMemo(() => new Map(concepts.map((c) => [c.id, c])), [concepts]);
+  // Ids of a category/concept deleted meanwhile simply resolve to nothing.
+  const resolveCategories = (c: Channel) =>
+    c.categoryIds.flatMap((id) => categoryById.get(id) ?? []);
+  const resolveConcepts = (c: Channel) => c.conceptIds.flatMap((id) => conceptById.get(id) ?? []);
 
   const availableLanguages = useMemo(() => {
     const codes = new Set<string>();
@@ -139,8 +143,8 @@ export function ChannelListClient({
     const q = search.trim().toLowerCase();
     return channels.filter((c) => {
       if (q && !c.name.toLowerCase().includes(q)) return false;
-      if (categoryFilter && String(c.categoryId ?? "") !== categoryFilter) return false;
-      if (conceptFilter && String(c.conceptId ?? "") !== conceptFilter) return false;
+      if (categoryFilter && !c.categoryIds.includes(Number(categoryFilter))) return false;
+      if (conceptFilter && !c.conceptIds.includes(Number(conceptFilter))) return false;
       if (languageFilter && !c.languages.includes(languageFilter)) return false;
       if (countryFilter && !c.countries.includes(countryFilter)) return false;
       return true;
@@ -254,8 +258,8 @@ export function ChannelListClient({
             <ChannelListRow
               key={channel.id}
               channel={channel}
-              category={channel.categoryId ? categoryById.get(channel.categoryId) : undefined}
-              concept={channel.conceptId ? conceptById.get(channel.conceptId) : undefined}
+              categories={resolveCategories(channel)}
+              concepts={resolveConcepts(channel)}
               onRefreshed={handleRefreshed}
               onDeleted={handleDeleted}
               onStatusChanged={handleStatusChanged}
@@ -268,8 +272,8 @@ export function ChannelListClient({
             <ChannelCard
               key={channel.id}
               channel={channel}
-              category={channel.categoryId ? categoryById.get(channel.categoryId) : undefined}
-              concept={channel.conceptId ? conceptById.get(channel.conceptId) : undefined}
+              categories={resolveCategories(channel)}
+              concepts={resolveConcepts(channel)}
               onRefreshed={handleRefreshed}
               onDeleted={handleDeleted}
               onStatusChanged={handleStatusChanged}

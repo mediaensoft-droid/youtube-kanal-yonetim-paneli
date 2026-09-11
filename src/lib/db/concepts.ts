@@ -64,16 +64,26 @@ export async function updateConcept(
 }
 
 export async function deleteConcept(userId: number, id: number): Promise<void> {
-  await run(`UPDATE channels SET conceptId = NULL WHERE conceptId = ? AND userId = ?`, [
-    id,
-    userId,
-  ]);
+  // Drop the id from every channel that carries it; json_group_array() rebuilds the remaining list
+  // (and yields '[]' rather than NULL when nothing is left, matching the column default).
+  await run(
+    `UPDATE channels
+       SET conceptIds = COALESCE(
+         (SELECT json_group_array(value) FROM json_each(channels.conceptIds) WHERE value != ?),
+         '[]'
+       )
+     WHERE userId = ? AND EXISTS (SELECT 1 FROM json_each(channels.conceptIds) WHERE value = ?)`,
+    [id, userId, id]
+  );
   await run(`DELETE FROM concepts WHERE id = ? AND userId = ?`, [id, userId]);
 }
 
 export async function countChannelsByConcept(userId: number): Promise<Record<number, number>> {
   const rows = await all<{ conceptId: number; count: number }>(
-    `SELECT conceptId, COUNT(*) as count FROM channels WHERE conceptId IS NOT NULL AND userId = ? AND isActive = 1 GROUP BY conceptId`,
+    `SELECT je.value AS conceptId, COUNT(*) as count
+       FROM channels, json_each(channels.conceptIds) AS je
+      WHERE channels.userId = ? AND channels.isActive = 1
+      GROUP BY je.value`,
     [userId]
   );
   const result: Record<number, number> = {};

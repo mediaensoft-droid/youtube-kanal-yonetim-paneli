@@ -21,8 +21,8 @@ export interface Channel {
   subscriberCount: number | null;
   videoCount: number | null;
   viewCount: number | null;
-  categoryId: number | null;
-  conceptId: number | null;
+  categoryIds: number[];
+  conceptIds: number[];
   languages: string[];
   countries: string[];
   notes: string | null;
@@ -48,16 +48,16 @@ export interface ChannelFilters {
 
 export interface CreateChannelInput {
   input: string;
-  categoryId?: number | null;
-  conceptId?: number | null;
+  categoryIds?: number[];
+  conceptIds?: number[];
   languages?: string[];
   countries?: string[];
   notes?: string | null;
 }
 
 export interface UpdateChannelInput {
-  categoryId?: number | null;
-  conceptId?: number | null;
+  categoryIds?: number[];
+  conceptIds?: number[];
   languages?: string[];
   countries?: string[];
   notes?: string | null;

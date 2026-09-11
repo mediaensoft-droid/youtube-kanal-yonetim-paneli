@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import type { Category, Concept, Channel } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { MultiSelect } from "@/components/MultiSelect";
 import { LANGUAGES } from "@/lib/constants/languages";
@@ -34,12 +33,15 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
   const [error, setError] = useState<string | null>(null);
 
   const [input, setInput] = useState("");
-  const [categoryId, setCategoryId] = useState<string>(
-    initialChannel?.categoryId != null ? String(initialChannel.categoryId) : ""
+  // MultiSelect works on string codes; ids round-trip through String()/Number().
+  const [categoryIds, setCategoryIds] = useState<string[]>(
+    (initialChannel?.categoryIds ?? []).map(String)
   );
-  const [conceptId, setConceptId] = useState<string>(
-    initialChannel?.conceptId != null ? String(initialChannel.conceptId) : ""
+  const [conceptIds, setConceptIds] = useState<string[]>(
+    (initialChannel?.conceptIds ?? []).map(String)
   );
+  const categoryOptions = categories.map((c) => ({ code: String(c.id), label: c.name, color: c.color }));
+  const conceptOptions = concepts.map((c) => ({ code: String(c.id), label: c.name, color: c.color }));
   const [languages, setLanguages] = useState<string[]>(initialChannel?.languages ?? []);
   const [countries, setCountries] = useState<string[]>(initialChannel?.countries ?? []);
   const [notes, setNotes] = useState(initialChannel?.notes ?? "");
@@ -61,8 +63,8 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             input,
-            categoryId: categoryId ? Number(categoryId) : null,
-            conceptId: conceptId ? Number(conceptId) : null,
+            categoryIds: categoryIds.map(Number),
+            conceptIds: conceptIds.map(Number),
             languages,
             countries,
             notes: notes || null,
@@ -78,8 +80,8 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            categoryId: categoryId ? Number(categoryId) : null,
-            conceptId: conceptId ? Number(conceptId) : null,
+            categoryIds: categoryIds.map(Number),
+            conceptIds: conceptIds.map(Number),
             languages,
             countries,
             notes: notes || null,
@@ -138,27 +140,23 @@ export function ChannelForm({ mode, categories, concepts, initialChannel }: Chan
       )}
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-ink">Kategori</label>
-        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          <option value="">Kategorisiz</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
+        <label className="mb-1 block text-sm font-medium text-ink">Kategoriler</label>
+        <MultiSelect
+          options={categoryOptions}
+          value={categoryIds}
+          onChange={setCategoryIds}
+          placeholder="Kategori seçin..."
+        />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-ink">Konsept</label>
-        <Select value={conceptId} onChange={(e) => setConceptId(e.target.value)}>
-          <option value="">Konseptsiz</option>
-          {concepts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </Select>
+        <label className="mb-1 block text-sm font-medium text-ink">Konseptler</label>
+        <MultiSelect
+          options={conceptOptions}
+          value={conceptIds}
+          onChange={setConceptIds}
+          placeholder="Konsept seçin..."
+        />
       </div>
 
       <div>

@@ -8,6 +8,18 @@ export interface MultiSelectOption {
   code: string;
   label: string;
   icon?: string;
+  /** Hex colour rendered as a small dot before the label (category/concept pickers). */
+  color?: string;
+}
+
+function ColorDot({ color }: { color: string }) {
+  return (
+    <span
+      aria-hidden
+      className="inline-block h-2 w-2 shrink-0 rounded-full"
+      style={{ backgroundColor: color }}
+    />
+  );
 }
 
 interface MultiSelectProps {
@@ -70,6 +82,7 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seçin...
                 key={code}
                 className="inline-flex items-center gap-1 rounded bg-surface-hover px-1.5 py-0.5 text-xs text-ink"
               >
+                {opt?.color && <ColorDot color={opt.color} />}
                 {opt?.icon} {opt?.label ?? code}
                 <X
                   className="h-3 w-3 cursor-pointer text-ink-muted hover:text-brand"
@@ -118,6 +131,7 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seçin...
                     )}
                   >
                     <input type="checkbox" checked={selected} readOnly className="pointer-events-none accent-brand" />
+                    {opt.color && <ColorDot color={opt.color} />}
                     {opt.icon && <span>{opt.icon}</span>}
                     <span>{opt.label}</span>
                   </button>

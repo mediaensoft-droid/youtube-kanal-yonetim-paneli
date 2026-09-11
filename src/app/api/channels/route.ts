@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return errorResponse(400, parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
-  const { input, categoryId, conceptId, languages, countries, notes } = parsed.data;
+  const { input, categoryIds, conceptIds, languages, countries, notes } = parsed.data;
 
   try {
     const channelId = await resolveToChannelId(input, apiKey);
@@ -92,8 +92,8 @@ export async function POST(req: NextRequest) {
       subscriberCount: data.subscriberCount,
       videoCount: data.videoCount,
       viewCount: data.viewCount,
-      categoryId: categoryId ?? null,
-      conceptId: conceptId ?? null,
+      categoryIds: categoryIds ?? [],
+      conceptIds: conceptIds ?? [],
       languages: languages ?? [],
       countries: countries ?? [],
       notes: notes ?? null,

@@ -70,6 +70,8 @@ async function bootstrapSchema(): Promise<void> {
       publishDays      TEXT NOT NULL DEFAULT '[]',
       publishTime      TEXT,
       isActive         INTEGER NOT NULL DEFAULT 1,
+      categoryIds      TEXT NOT NULL DEFAULT '[]',
+      conceptIds       TEXT NOT NULL DEFAULT '[]',
       lastRefreshedAt  TEXT,
       createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -137,6 +139,28 @@ async function bootstrapSchema(): Promise<void> {
     } catch (err) {
       const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
       if (!isDuplicateColumn) throw err;
+    }
+  }
+
+  // A channel can now belong to several categories/concepts. `categoryIds`/`conceptIds` are JSON
+  // arrays (same shape as languages/countries); the legacy single-value `categoryId`/`conceptId`
+  // columns stay in place but are no longer read or written. Existing values are folded into the
+  // arrays exactly once, when the columns are first added.
+  const hasCategoryIds = tableInfo.rows.some((row) => row.name === "categoryIds");
+  if (!hasCategoryIds) {
+    for (const [column, legacy] of [
+      ["categoryIds", "categoryId"],
+      ["conceptIds", "conceptId"],
+    ] as const) {
+      try {
+        await db.execute(`ALTER TABLE channels ADD COLUMN ${column} TEXT NOT NULL DEFAULT '[]'`);
+      } catch (err) {
+        const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+        if (!isDuplicateColumn) throw err;
+      }
+      await db.execute(
+        `UPDATE channels SET ${column} = json_array(${legacy}) WHERE ${legacy} IS NOT NULL AND ${column} = '[]'`
+      );
     }
   }
 
@@ -259,6 +283,8 @@ async function bootstrapSchema(): Promise<void> {
           publishDays      TEXT NOT NULL DEFAULT '[]',
           publishTime      TEXT,
           isActive         INTEGER NOT NULL DEFAULT 1,
+          categoryIds      TEXT NOT NULL DEFAULT '[]',
+          conceptIds       TEXT NOT NULL DEFAULT '[]',
           lastRefreshedAt  TEXT,
           createdAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
           updatedAt        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
@@ -267,10 +293,10 @@ async function bootstrapSchema(): Promise<void> {
         INSERT INTO channels_new
           (id, userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
            categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
-           lastRefreshedAt, createdAt, updatedAt)
+           categoryIds, conceptIds, lastRefreshedAt, createdAt, updatedAt)
         SELECT id, NULL, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount,
                categoryId, conceptId, languages, countries, notes, publishDays, publishTime, isActive,
-               lastRefreshedAt, createdAt, updatedAt
+               categoryIds, conceptIds, lastRefreshedAt, createdAt, updatedAt
         FROM channels;
         DROP TABLE channels;
         ALTER TABLE channels_new RENAME TO channels;

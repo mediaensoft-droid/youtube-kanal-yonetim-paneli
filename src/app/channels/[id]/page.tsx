@@ -3,10 +3,10 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, Settings2, ListVideo, Users, Video, Eye } from "lucide-react";
 import { getSessionUserId } from "@/lib/auth";
 import { getChannelById } from "@/lib/db/channels";
-import { getCategoryById } from "@/lib/db/categories";
-import { getConceptById } from "@/lib/db/concepts";
+import { listCategories } from "@/lib/db/categories";
+import { listConcepts } from "@/lib/db/concepts";
 import { listSnapshots } from "@/lib/db/snapshots";
-import { CategoryBadge } from "@/components/CategoryBadge";
+import { ChannelTagBadges } from "@/components/ChannelTagBadges";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { formatCompactNumber } from "@/lib/format";
 import { getLanguageName } from "@/lib/constants/languages";
@@ -28,11 +28,13 @@ export default async function ChannelDetailPage({ params }: PageProps) {
   const channel = await getChannelById(userId, Number(id));
   if (!channel) notFound();
 
-  const [category, concept, snapshots] = await Promise.all([
-    channel.categoryId ? getCategoryById(userId, channel.categoryId) : undefined,
-    channel.conceptId ? getConceptById(userId, channel.conceptId) : undefined,
+  const [allCategories, allConcepts, snapshots] = await Promise.all([
+    listCategories(userId),
+    listConcepts(userId),
     listSnapshots(channel.id),
   ]);
+  const categories = allCategories.filter((c) => channel.categoryIds.includes(c.id));
+  const concepts = allConcepts.filter((c) => channel.conceptIds.includes(c.id));
 
   const subscriberTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.subscriberCount }));
   const viewTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.viewCount }));
@@ -81,12 +83,7 @@ export default async function ChannelDetailPage({ params }: PageProps) {
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            {category ? (
-              <CategoryBadge name={category.name} color={category.color} />
-            ) : (
-              <span className="text-xs text-ink-faint">Kategorisiz</span>
-            )}
-            {concept && <CategoryBadge name={concept.name} color={concept.color} />}
+            <ChannelTagBadges categories={categories} concepts={concepts} />
             {channel.languages.map((code) => (
               <span
                 key={`lang-${code}`}

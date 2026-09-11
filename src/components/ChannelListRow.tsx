@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
-import { CategoryBadge } from "@/components/CategoryBadge";
+import { ChannelTagBadges } from "@/components/ChannelTagBadges";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
 import { ChannelPassiveWarning } from "@/components/ChannelPassiveWarning";
@@ -28,15 +28,15 @@ import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
 
 interface ChannelListRowProps {
   channel: Channel;
-  category: Category | undefined;
-  concept: Concept | undefined;
+  categories: Category[];
+  concepts: Concept[];
   onRefreshed: (channel: Channel) => void;
   onDeleted: (id: number) => void;
   /** Fired after the channel flips active⇄passive; the list drops it since it now belongs to the other screen. */
   onStatusChanged: (id: number) => void;
 }
 
-export function ChannelListRow({ channel, category, concept, onRefreshed, onDeleted, onStatusChanged }: ChannelListRowProps) {
+export function ChannelListRow({ channel, categories, concepts, onRefreshed, onDeleted, onStatusChanged }: ChannelListRowProps) {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -134,12 +134,7 @@ export function ChannelListRow({ channel, category, concept, onRefreshed, onDele
               <h3 className="truncate text-sm font-semibold text-ink" title={channel.name}>
                 {channel.name}
               </h3>
-              {category ? (
-                <CategoryBadge name={category.name} color={category.color} />
-              ) : (
-                <span className="text-xs text-ink-faint">Kategorisiz</span>
-              )}
-              {concept && <CategoryBadge name={concept.name} color={concept.color} />}
+              <ChannelTagBadges categories={categories} concepts={concepts} />
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
               <span className="flex items-center gap-1">

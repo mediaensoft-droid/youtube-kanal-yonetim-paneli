@@ -93,8 +93,8 @@ export function CalendarClient({ initialChannels, categories, concepts }: Calend
 
   const panelFilteredChannels = useMemo(() => {
     return channels.filter((c) => {
-      if (panelCategoryFilter && String(c.categoryId ?? "") !== panelCategoryFilter) return false;
-      if (panelConceptFilter && String(c.conceptId ?? "") !== panelConceptFilter) return false;
+      if (panelCategoryFilter && !c.categoryIds.includes(Number(panelCategoryFilter))) return false;
+      if (panelConceptFilter && !c.conceptIds.includes(Number(panelConceptFilter))) return false;
       if (panelLanguageFilter && !c.languages.includes(panelLanguageFilter)) return false;
       return true;
     });
