@@ -221,6 +221,7 @@ export function CalendarClient({ initialChannels, categories, concepts, readOnly
   }
 
   function updatePublishTime(channel: Channel, time: string) {
+    if (readOnly) return;
     const publishTime = time || null;
     setChannels((prev) => prev.map((c) => (c.id === channel.id ? { ...c, publishTime } : c)));
 
@@ -444,13 +445,22 @@ export function CalendarClient({ initialChannels, categories, concepts, readOnly
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 shrink-0 text-ink-faint" />
-                  <input
-                    type="time"
-                    value={channel.publishTime ?? ""}
-                    onChange={(e) => updatePublishTime(channel, e.target.value)}
-                    aria-label={`${channel.name} yayın saati`}
-                    className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-                  />
+                  {readOnly ? (
+                    <span
+                      aria-label={`${channel.name} yayın saati`}
+                      className="rounded-md border border-line bg-surface-2 px-2 py-1 text-xs text-ink-faint"
+                    >
+                      {channel.publishTime ?? "—"}
+                    </span>
+                  ) : (
+                    <input
+                      type="time"
+                      value={channel.publishTime ?? ""}
+                      onChange={(e) => updatePublishTime(channel, e.target.value)}
+                      aria-label={`${channel.name} yayın saati`}
+                      className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink transition-colors duration-150 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+                  )}
                 </div>
               </div>
             ))}
