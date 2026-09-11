@@ -290,6 +290,25 @@ async function bootstrapSchema(): Promise<void> {
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_task_comments_taskId ON task_comments(taskId)`);
 
+  // Personal notes (D): every member (owner included) has their own private notebook. The owner
+  // can read staff notes (enforced in the API layer, not here) but never the reverse, and nobody
+  // edits anyone else's notes. Not logged to activity_log — these are meant to stay private.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      memberId  INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      title     TEXT NOT NULL DEFAULT '',
+      body      TEXT NOT NULL DEFAULT '',
+      pinned    INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      updatedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_notes_userId_memberId_updatedAt ON notes(userId, memberId, updatedAt)`
+  );
+
   // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
   await db.execute(`
     INSERT INTO members (userId, role, displayName)

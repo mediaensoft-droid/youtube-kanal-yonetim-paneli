@@ -162,3 +162,14 @@ export const moveTaskSchema = z.object({
 export const taskCommentSchema = z.object({
   body: z.string().trim().min(1, "Yorum boş olamaz").max(2000, "Yorum çok uzun"),
 });
+
+export const createNoteSchema = z.object({
+  title: z.string().max(200, "Başlık çok uzun").default(""),
+  body: z.string().max(50000, "Not çok uzun").default(""),
+});
+
+export const updateNoteSchema = z.object({
+  title: z.string().max(200, "Başlık çok uzun").optional(),
+  body: z.string().max(50000, "Not çok uzun").optional(),
+  pinned: z.boolean().optional(),
+});

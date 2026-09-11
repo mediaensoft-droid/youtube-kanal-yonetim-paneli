@@ -213,3 +213,13 @@ export interface TaskComment {
   createdAt: string;
 }
 
+export interface Note {
+  id: number;
+  memberId: number;
+  title: string;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
