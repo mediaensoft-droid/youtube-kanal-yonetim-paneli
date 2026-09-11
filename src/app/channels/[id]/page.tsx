@@ -6,9 +6,10 @@ import { getChannelById } from "@/lib/db/channels";
 import { listCategories } from "@/lib/db/categories";
 import { listConcepts } from "@/lib/db/concepts";
 import { listSnapshots } from "@/lib/db/snapshots";
+import { listMembers } from "@/lib/db/members";
 import { ChannelTagBadges } from "@/components/ChannelTagBadges";
 import { TrendChart } from "@/components/charts/TrendChart";
-import { formatCompactNumber } from "@/lib/format";
+import { formatCompactNumber, formatDate } from "@/lib/format";
 import { getLanguageName } from "@/lib/constants/languages";
 import { getCountryName, countryFlagEmoji } from "@/lib/constants/countries";
 import { studioCustomizeUrl, studioVideosUrl } from "@/lib/studioLinks";
@@ -28,13 +29,15 @@ export default async function ChannelDetailPage({ params }: PageProps) {
   const channel = await getChannelById(userId, Number(id));
   if (!channel) notFound();
 
-  const [allCategories, allConcepts, snapshots] = await Promise.all([
+  const [allCategories, allConcepts, snapshots, members] = await Promise.all([
     listCategories(userId),
     listConcepts(userId),
     listSnapshots(channel.id),
+    listMembers(userId),
   ]);
   const categories = allCategories.filter((c) => channel.categoryIds.includes(c.id));
   const concepts = allConcepts.filter((c) => channel.conceptIds.includes(c.id));
+  const memberName = (id: number | null) => members.find((m) => m.id === id)?.displayName ?? "—";
 
   const subscriberTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.subscriberCount }));
   const viewTrend = snapshots.map((s) => ({ capturedAt: s.capturedAt, value: s.viewCount }));
@@ -100,6 +103,16 @@ export default async function ChannelDetailPage({ params }: PageProps) {
                 {countryFlagEmoji(code)} {getCountryName(code)}
               </span>
             ))}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+            <span>Ekleyen: <span className="text-ink">{memberName(channel.createdByMemberId)}</span> · {formatDate(channel.createdAt)}</span>
+            {channel.statusChangedAt && (
+              <span>
+                {channel.status === "passive" ? "Pasife alan" : channel.status === "active" ? "Aktife alan" : "Son durum değişikliği"}:{" "}
+                <span className="text-ink">{memberName(channel.statusChangedByMemberId)}</span> · {formatDate(channel.statusChangedAt)}
+              </span>
+            )}
           </div>
 
           {channel.notes && <p className="mt-3 text-sm text-ink-muted">{channel.notes}</p>}
