@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
     "@vercel/blob": "^2.8.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/d3-geo": "^3.1.1",
     "@types/d3-selection": "^3.0.11",
     "@types/d3-transition": "^3.0.9",
@@ -44,7 +47,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.0"
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true
