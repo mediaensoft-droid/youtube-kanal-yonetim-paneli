@@ -161,6 +161,42 @@ async function bootstrapSchema(): Promise<void> {
   }
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_channels_userId_status ON channels(userId, status)`);
 
+  // A channel can now belong to several categories/concepts. `categoryIds`/`conceptIds` are JSON
+  // arrays (same shape as languages/countries); the legacy single-value `categoryId`/`conceptId`
+  // columns stay in place but are no longer read or written. Existing values are folded into the
+  // arrays exactly once, when the columns are first added.
+  const hasCategoryIds = tableInfo.rows.some((row) => row.name === "categoryIds");
+  if (!hasCategoryIds) {
+    for (const [column, legacy] of [
+      ["categoryIds", "categoryId"],
+      ["conceptIds", "conceptId"],
+    ] as const) {
+      try {
+        await db.execute(`ALTER TABLE channels ADD COLUMN ${column} TEXT NOT NULL DEFAULT '[]'`);
+      } catch (err) {
+        const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+        if (!isDuplicateColumn) throw err;
+      }
+      await db.execute(
+        `UPDATE channels SET ${column} = json_array(${legacy}) WHERE ${legacy} IS NOT NULL AND ${column} = '[]'`
+      );
+    }
+  }
+
+  // Multi-tenant migration: a `users` table plus per-row ownership on channels/categories/concepts.
+  // SQLite can't alter a UNIQUE constraint in place, so youtubeId/name uniqueness moves from
+  // globally-unique to composite (userId, youtubeId)/(userId, name) via a full table rebuild —
+  // this only runs once per database, guarded by the presence of the `userId` column.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      email     TEXT NOT NULL UNIQUE,
+      name      TEXT,
+      image     TEXT,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+
   // Members: every actor in a workspace, the owner included (role 'yonetici', no credentials).
   // Staff rows carry a globally-unique username + bcrypt hash and sign in via Credentials.
   await db.execute(`
@@ -207,42 +243,6 @@ async function bootstrapSchema(): Promise<void> {
     UPDATE channels
        SET createdByMemberId = (SELECT m.id FROM members m WHERE m.userId = channels.userId AND m.role = 'yonetici')
      WHERE createdByMemberId IS NULL
-  `);
-
-  // A channel can now belong to several categories/concepts. `categoryIds`/`conceptIds` are JSON
-  // arrays (same shape as languages/countries); the legacy single-value `categoryId`/`conceptId`
-  // columns stay in place but are no longer read or written. Existing values are folded into the
-  // arrays exactly once, when the columns are first added.
-  const hasCategoryIds = tableInfo.rows.some((row) => row.name === "categoryIds");
-  if (!hasCategoryIds) {
-    for (const [column, legacy] of [
-      ["categoryIds", "categoryId"],
-      ["conceptIds", "conceptId"],
-    ] as const) {
-      try {
-        await db.execute(`ALTER TABLE channels ADD COLUMN ${column} TEXT NOT NULL DEFAULT '[]'`);
-      } catch (err) {
-        const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
-        if (!isDuplicateColumn) throw err;
-      }
-      await db.execute(
-        `UPDATE channels SET ${column} = json_array(${legacy}) WHERE ${legacy} IS NOT NULL AND ${column} = '[]'`
-      );
-    }
-  }
-
-  // Multi-tenant migration: a `users` table plus per-row ownership on channels/categories/concepts.
-  // SQLite can't alter a UNIQUE constraint in place, so youtubeId/name uniqueness moves from
-  // globally-unique to composite (userId, youtubeId)/(userId, name) via a full table rebuild —
-  // this only runs once per database, guarded by the presence of the `userId` column.
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      email     TEXT NOT NULL UNIQUE,
-      name      TEXT,
-      image     TEXT,
-      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-    )
   `);
 
   await db.execute(`
