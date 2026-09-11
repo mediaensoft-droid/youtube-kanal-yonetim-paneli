@@ -23,6 +23,43 @@ type ViewMode = "large" | "small" | "list";
 
 const VIEW_MODE_STORAGE_KEY = "channelViewMode";
 
+// Filters survive a round-trip to edit/detail pages (and the back button) within the tab, but reset
+// when the tab is closed — sessionStorage, not localStorage, so a stale filter never greets a fresh visit.
+const FILTER_STORAGE_PREFIX = "channelListFilters:";
+
+interface StoredFilters {
+  search: string;
+  categoryFilter: string;
+  conceptFilter: string;
+  languageFilter: string;
+  countryFilter: string;
+}
+
+const EMPTY_FILTERS: StoredFilters = {
+  search: "",
+  categoryFilter: "",
+  conceptFilter: "",
+  languageFilter: "",
+  countryFilter: "",
+};
+
+function readStoredFilters(key: string): StoredFilters | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredFilters>;
+    return {
+      search: typeof parsed.search === "string" ? parsed.search : "",
+      categoryFilter: typeof parsed.categoryFilter === "string" ? parsed.categoryFilter : "",
+      conceptFilter: typeof parsed.conceptFilter === "string" ? parsed.conceptFilter : "",
+      languageFilter: typeof parsed.languageFilter === "string" ? parsed.languageFilter : "",
+      countryFilter: typeof parsed.countryFilter === "string" ? parsed.countryFilter : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 const VIEW_MODES: { key: ViewMode; label: string; icon: typeof LayoutGrid }[] = [
   { key: "large", label: "Büyük", icon: LayoutGrid },
   { key: "small", label: "Küçük", icon: Grid3x3 },
@@ -45,22 +82,38 @@ export function ChannelListClient({
 }: ChannelListClientProps) {
   const isPassiveScreen = status === "passive";
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [conceptFilter, setConceptFilter] = useState("");
-  const [languageFilter, setLanguageFilter] = useState("");
-  const [countryFilter, setCountryFilter] = useState("");
+  const [filters, setFilters] = useState<StoredFilters>(EMPTY_FILTERS);
+  const { search, categoryFilter, conceptFilter, languageFilter, countryFilter } = filters;
+  // Active and passive screens remember their filters independently.
+  const filterStorageKey = FILTER_STORAGE_PREFIX + status;
+  // The list is hidden until stored filters are restored, so a filtered view doesn't flash unfiltered.
+  const [filtersRestored, setFiltersRestored] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("large");
 
   useEffect(() => {
-    // Reads a browser-only API (localStorage), so it can't run during SSR/first render —
-    // this one-time sync read on mount is the standard way to restore a persisted preference.
+    // Reads browser-only APIs (localStorage/sessionStorage), so it can't run during SSR/first
+    // render — this one-time sync read on mount is the standard way to restore persisted state.
     const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
     if (stored === "large" || stored === "small" || stored === "list") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewMode(stored);
     }
-  }, []);
+    const storedFilters = readStoredFilters(filterStorageKey);
+    if (storedFilters) setFilters(storedFilters);
+    setFiltersRestored(true);
+  }, [filterStorageKey]);
+
+  function updateFilter<K extends keyof StoredFilters>(key: K, value: StoredFilters[K]) {
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+      try {
+        sessionStorage.setItem(filterStorageKey, JSON.stringify(next));
+      } catch {
+        // Storage can be unavailable (private mode, quota) — filtering still works for this visit.
+      }
+      return next;
+    });
+  }
 
   function changeViewMode(mode: ViewMode) {
     setViewMode(mode);
@@ -121,13 +174,13 @@ export function ChannelListClient({
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => updateFilter("search", e.target.value)}
             placeholder="Kanal ara..."
             className="pl-9"
           />
         </div>
 
-        <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+        <Select value={categoryFilter} onChange={(e) => updateFilter("categoryFilter", e.target.value)}>
           <option value="">Tüm kategoriler</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
@@ -136,7 +189,7 @@ export function ChannelListClient({
           ))}
         </Select>
 
-        <Select value={conceptFilter} onChange={(e) => setConceptFilter(e.target.value)}>
+        <Select value={conceptFilter} onChange={(e) => updateFilter("conceptFilter", e.target.value)}>
           <option value="">Tüm konseptler</option>
           {concepts.map((c) => (
             <option key={c.id} value={c.id}>
@@ -145,7 +198,7 @@ export function ChannelListClient({
           ))}
         </Select>
 
-        <Select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)}>
+        <Select value={languageFilter} onChange={(e) => updateFilter("languageFilter", e.target.value)}>
           <option value="">Tüm diller</option>
           {availableLanguages.map((code) => (
             <option key={code} value={code}>
@@ -154,7 +207,7 @@ export function ChannelListClient({
           ))}
         </Select>
 
-        <Select value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}>
+        <Select value={countryFilter} onChange={(e) => updateFilter("countryFilter", e.target.value)}>
           <option value="">Tüm ülkeler</option>
           {availableCountries.map((code) => (
             <option key={code} value={code}>
@@ -187,7 +240,7 @@ export function ChannelListClient({
         </div>
       </div>
 
-      {filteredChannels.length === 0 ? (
+      {!filtersRestored ? null : filteredChannels.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line-strong py-16 text-center text-ink-muted">
           {channels.length === 0
             ? isPassiveScreen
