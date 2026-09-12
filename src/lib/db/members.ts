@@ -22,7 +22,7 @@ const PUBLIC_COLUMNS = `id, userId, role, displayName, username, status, lastLog
 
 export async function ensureOwnerMember(userId: number, displayName: string): Promise<Member> {
   const existing = await get<Member>(
-    `SELECT ${PUBLIC_COLUMNS} FROM members WHERE userId = ? AND role = 'yonetici'`,
+    `SELECT ${PUBLIC_COLUMNS} FROM members WHERE userId = ? AND username IS NULL`,
     [userId]
   );
   if (existing) return existing;

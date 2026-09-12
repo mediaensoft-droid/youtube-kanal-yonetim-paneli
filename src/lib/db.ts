@@ -227,7 +227,12 @@ async function bootstrapSchema(): Promise<void> {
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_members_userId ON members(userId)`);
   await db.execute(
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_members_owner ON members(userId) WHERE role = 'yonetici'`
+    `DROP INDEX IF EXISTS idx_members_owner`
+  );
+  // The owner row is the Google-authenticated member (no username); staff can also hold the
+  // yonetici role, so uniqueness is keyed on ownership rather than role.
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_members_owner_row ON members(userId) WHERE username IS NULL`
   );
 
   // Who-did-what audit trail (B). memberId is nullable so a removed member's history survives
@@ -417,7 +422,7 @@ async function bootstrapSchema(): Promise<void> {
     INSERT INTO members (userId, role, displayName)
     SELECT u.id, 'yonetici', COALESCE(NULLIF(u.name, ''), u.email)
       FROM users u
-     WHERE NOT EXISTS (SELECT 1 FROM members m WHERE m.userId = u.id AND m.role = 'yonetici')
+     WHERE NOT EXISTS (SELECT 1 FROM members m WHERE m.userId = u.id AND m.username IS NULL)
   `);
 
   // Who added a channel / who last changed its status. Pre-existing channels are attributed to the
@@ -629,7 +634,7 @@ async function bootstrapSchema(): Promise<void> {
   // isn't guaranteed to exist until the multi-tenant rebuild has run.
   await db.execute(`
     UPDATE channels
-       SET createdByMemberId = (SELECT m.id FROM members m WHERE m.userId = channels.userId AND m.role = 'yonetici')
+       SET createdByMemberId = (SELECT m.id FROM members m WHERE m.userId = channels.userId AND m.username IS NULL)
      WHERE createdByMemberId IS NULL
   `);
 
