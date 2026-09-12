@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Camera, LogOut, Trash2, CreditCard } from "lucide-react";
+import { Camera, LogOut, Trash2, CreditCard, KeyRound } from "lucide-react";
 import type { AppUser } from "@/lib/db/users";
 import type { Subscription } from "@/lib/db/subscriptions";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,7 @@ import { getPlan, type PlanId } from "@/lib/plans";
 interface ProfileClientProps {
   user: AppUser;
   subscription: Subscription | null;
+  hasProfilePassword: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -24,7 +25,40 @@ const STATUS_LABELS: Record<string, string> = {
   canceled: "İptal edildi",
 };
 
-export function ProfileClient({ user, subscription }: ProfileClientProps) {
+export function ProfileClient({ user, subscription, hasProfilePassword: initialHasPassword }: ProfileClientProps) {
+  const [hasPassword, setHasPassword] = useState(initialHasPassword);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [newPw2, setNewPw2] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
+
+  async function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPw !== newPw2) {
+      toast.error("Yeni şifreler eşleşmiyor");
+      return;
+    }
+    setSavingPw(true);
+    try {
+      const res = await fetch("/api/profile/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: hasPassword ? currentPw : undefined, newPassword: newPw }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Şifre kaydedilemedi");
+      setHasPassword(true);
+      setCurrentPw("");
+      setNewPw("");
+      setNewPw2("");
+      toast.success("Profil şifresi kaydedildi");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Şifre kaydedilemedi");
+    } finally {
+      setSavingPw(false);
+    }
+  }
+
   const { update } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState(user.image);
@@ -221,6 +255,28 @@ export function ProfileClient({ user, subscription }: ProfileClientProps) {
           </Link>
         </div>
       </div>
+
+      <form onSubmit={handlePasswordSubmit} className="mt-4 rounded-lg border border-line bg-surface p-5 shadow-sm">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+          <KeyRound className="h-4 w-4" /> Profil şifresi
+        </h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          Google ile giriş yaptıktan sonra profil seçme ekranında hesap sahibi profili için sorulur.
+          {hasPassword ? " Şifre tanımlı." : " Henüz şifre tanımlı değil — herkes hesap sahibi profiline girebilir."}
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {hasPassword && (
+            <Input type="password" value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} placeholder="Mevcut şifre" autoComplete="current-password" required />
+          )}
+          <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Yeni şifre (en az 8)" autoComplete="new-password" required />
+          <Input type="password" value={newPw2} onChange={(e) => setNewPw2(e.target.value)} placeholder="Yeni şifre (tekrar)" autoComplete="new-password" required />
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button type="submit" size="sm" disabled={savingPw}>
+            {savingPw ? "Kaydediliyor..." : hasPassword ? "Şifreyi değiştir" : "Şifre belirle"}
+          </Button>
+        </div>
+      </form>
 
       <div className="mt-4 flex justify-end">
         <Button variant="danger" size="sm" onClick={() => signOut({ redirectTo: "/sign-in" })}>

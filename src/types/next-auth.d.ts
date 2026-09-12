@@ -5,7 +5,8 @@ declare module "next-auth" {
   interface Session {
     user: { id: string } & DefaultSession["user"];
     /** Absent when a staff member has been disabled/removed after sign-in (id is blanked too). */
-    member?: { id: number; role: MemberRole; displayName: string; isOwner: boolean };
+    /** `unlocked` is false while the owner still has to enter the profile password on /profiles. */
+    member?: { id: number; role: MemberRole; displayName: string; isOwner: boolean; unlocked: boolean };
   }
   interface User {
     /** Set by the Credentials provider so the jwt callback can attribute the workspace. */
@@ -25,5 +26,7 @@ declare module "@auth/core/jwt" {
     displayName?: string;
     /** true for the Google-authenticated workspace owner; false for username/password staff. */
     isOwner?: boolean;
+    /** Owner sessions only: set once the profile password has been entered on /profiles. */
+    ownerUnlocked?: boolean;
   }
 }

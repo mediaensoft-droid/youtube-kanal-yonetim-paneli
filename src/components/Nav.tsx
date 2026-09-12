@@ -54,7 +54,9 @@ export function Nav() {
   const role = session?.member?.role;
   const isAdmin = role === "yonetici";
   const isOwner = Boolean(session?.member?.isOwner);
-  const links = isAdmin ? [...BASE_LINKS, ...OWNER_ONLY_LINKS] : BASE_LINKS;
+  // A locked owner (profile password pending on /profiles) gets no navigation at all.
+  const locked = Boolean(session?.member?.isOwner && !session.member?.unlocked);
+  const links = locked ? [] : isAdmin ? [...BASE_LINKS, ...OWNER_ONLY_LINKS] : BASE_LINKS;
   const accountHref = isOwner ? "/profile" : "/account";
   const accountLabel = isOwner ? "Profil" : "Hesabım";
 

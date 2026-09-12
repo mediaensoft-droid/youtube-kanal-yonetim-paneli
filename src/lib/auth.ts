@@ -4,7 +4,7 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { getOrCreateUserByEmail, getUserById } from "@/lib/db/users";
 import { ensureTrialSubscription } from "@/lib/db/subscriptions";
-import { ensureOwnerMember, getMemberById, getMemberByUsername, touchMemberLogin } from "@/lib/db/members";
+import { ensureOwnerMember, getMemberById, getMemberByUsername, getMemberPasswordHash, touchMemberLogin } from "@/lib/db/members";
 import { logActivity } from "@/lib/db/activity";
 import { verifyPassword } from "@/lib/password";
 import { hasActiveAccess } from "@/lib/access";
@@ -18,6 +18,8 @@ export interface Actor {
   displayName: string;
   /** The Google-authenticated workspace owner (has /profile and billing); staff — even yonetici — use /account. */
   isOwner: boolean;
+  /** Owner sessions: true once the profile password was entered (or no password is set). */
+  unlocked: boolean;
 }
 
 // NextAuth surfaces `code` to the client's `signIn(..., { redirect: false })` result, so the
@@ -29,7 +31,7 @@ class NoAccessError extends CredentialsSignin {
   code = "NO_ACCESS";
 }
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   providers: [
     Google({ clientId: process.env.AUTH_GOOGLE_ID, clientSecret: process.env.AUTH_GOOGLE_SECRET }),
     Credentials({
@@ -61,7 +63,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider === "staff") return true;
       return Boolean(user.email);
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      // /api/profiles/unlock verified the owner password → flip the flag on the live token.
+      if (trigger === "update" && session && typeof session === "object" && "ownerUnlocked" in session) {
+        token.ownerUnlocked = Boolean((session as { ownerUnlocked?: boolean }).ownerUnlocked);
+        return token;
+      }
       if (user && account?.provider === "staff" && user.workspaceId && user.memberId && user.role) {
         token.userId = user.workspaceId;
         token.memberId = user.memberId;
@@ -79,6 +86,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = "yonetici";
         token.displayName = owner.displayName;
         token.isOwner = true;
+        // A fresh Google sign-in starts locked when the owner has set a profile password.
+        token.ownerUnlocked = !(await getMemberPasswordHash(owner.id));
         // `user` is only set on the actual sign-in request, never on later JWT refreshes — so
         // this only fires once per real login, same as the staff branch above.
         await logActivity({ workspaceId: dbUser.id, memberId: owner.id }, { action: "auth.login", entityType: "auth" });
@@ -93,6 +102,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = "yonetici";
           token.displayName = owner.displayName;
           token.isOwner = true;
+          token.ownerUnlocked = true;
         }
       }
       return token;
@@ -131,6 +141,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: liveRole ?? token.role ?? "yonetici",
           displayName: session.user.name ?? "",
           isOwner,
+          unlocked: isOwner ? token.ownerUnlocked !== false : true,
         };
       }
       return session;
@@ -141,17 +152,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 export async function getSessionUserId(): Promise<number | null> {
   const session = await auth();
   const id = session?.user?.id;
+  // A locked owner (Google signed in, profile password not yet entered on /profiles) has no
+  // access to any page or API until they unlock — /sign-in routes them to /profiles.
+  if (session?.member && session.member.isOwner && !session.member.unlocked) return null;
   return id ? Number(id) : null;
+}
+
+/** Owner session that still needs the profile password (used by /sign-in and /profiles). */
+export async function getLockedOwnerSession() {
+  const session = await auth();
+  if (session?.user?.id && session.member?.isOwner && !session.member.unlocked) return session;
+  return null;
 }
 
 export async function getSessionActor(): Promise<Actor | null> {
   const session = await auth();
   if (!session?.user?.id || !session.member?.id) return null;
+  if (session.member.isOwner && !session.member.unlocked) return null;
   return {
     workspaceId: Number(session.user.id),
     memberId: session.member.id,
     role: session.member.role,
     displayName: session.member.displayName,
     isOwner: session.member.isOwner,
+    unlocked: session.member.unlocked,
   };
 }

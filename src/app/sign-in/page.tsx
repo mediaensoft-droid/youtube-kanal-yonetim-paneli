@@ -6,7 +6,7 @@ import {
   Check,
   Globe2,
 } from "lucide-react";
-import { getSessionUserId } from "@/lib/auth";
+import { getSessionUserId, getLockedOwnerSession } from "@/lib/auth";
 import { countAllChannels, getSubscriberSnapshot } from "@/lib/db/channels";
 import { PLANS } from "@/lib/plans";
 import { CardAura } from "@/components/CardAura";
@@ -39,6 +39,7 @@ const FEATURES = [
 ];
 
 export default async function SignInPage() {
+  if (await getLockedOwnerSession()) redirect("/profiles");
   const userId = await getSessionUserId();
   if (userId) redirect("/");
 

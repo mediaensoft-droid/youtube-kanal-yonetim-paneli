@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { KeyRound, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -21,6 +21,9 @@ interface ProfilePickerProps {
   profiles: ProfileTile[];
   currentMemberId: number;
   currentIsOwner: boolean;
+  /** Owner session that still has to enter the profile password. */
+  ownerLocked: boolean;
+  ownerHasPassword: boolean;
 }
 
 const TILE_COLORS = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316"];
@@ -28,8 +31,9 @@ const TILE_COLORS = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC
 // Netflix-style "who is using the panel?" screen shown right after the Google sign-in. Picking a
 // staff profile asks for that person's password and swaps the session to them (same Credentials
 // flow as the sign-in page); the owner tile simply continues as the Google account.
-export function ProfilePicker({ profiles, currentMemberId, currentIsOwner }: ProfilePickerProps) {
+export function ProfilePicker({ profiles, currentMemberId, currentIsOwner, ownerLocked, ownerHasPassword }: ProfilePickerProps) {
   const router = useRouter();
+  const { update } = useSession();
   const [selected, setSelected] = useState<ProfileTile | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,13 +45,20 @@ export function ProfilePicker({ profiles, currentMemberId, currentIsOwner }: Pro
 
   function handleTileClick(profile: ProfileTile) {
     if (profile.username === null) {
-      // Owner tile: already signed in as the owner → just continue; otherwise a fresh Google sign-in.
-      if (currentIsOwner) {
+      // Owner tile: an unlocked owner just continues; a locked one (or one without a password yet)
+      // goes through the password modal; a staff session needs a fresh Google sign-in first.
+      if (!currentIsOwner) {
+        void signIn("google", { redirectTo: "/profiles" });
+        return;
+      }
+      if (!ownerLocked || !ownerHasPassword) {
         router.push("/");
         router.refresh();
-      } else {
-        void signIn("google", { redirectTo: "/" });
+        return;
       }
+      setSelected(profile);
+      setPassword("");
+      setError(null);
       return;
     }
     if (profile.id === currentMemberId) {
@@ -62,10 +73,27 @@ export function ProfilePicker({ profiles, currentMemberId, currentIsOwner }: Pro
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selected?.username) return;
+    if (!selected) return;
     setError(null);
     setSubmitting(true);
     try {
+      if (selected.username === null) {
+        const res = await fetch("/api/profiles/unlock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(data.error ?? "Şifre hatalı");
+          return;
+        }
+        // Pull the refreshed JWT into the client session before navigating.
+        await update();
+        router.push("/");
+        router.refresh();
+        return;
+      }
       const res = await signIn("staff", { username: selected.username, password, redirect: false });
       if (!res || res.error) {
         setError(
@@ -125,7 +153,9 @@ export function ProfilePicker({ profiles, currentMemberId, currentIsOwner }: Pro
                     </>
                   )}
                 </p>
-                {isCurrent && <p className="mt-1 text-xs font-medium text-brand">Şu anki oturum</p>}
+                {isCurrent && !(profile.username === null && ownerLocked) && (
+                  <p className="mt-1 text-xs font-medium text-brand">Şu anki oturum</p>
+                )}
               </div>
             </button>
           );
@@ -147,7 +177,7 @@ export function ProfilePicker({ profiles, currentMemberId, currentIsOwner }: Pro
                 <div>
                   <h3 className="text-base font-semibold text-ink">{selected.displayName}</h3>
                   <p className="mt-0.5 text-xs text-ink-muted">
-                    @{selected.username} · {ROLE_LABELS[selected.role]}
+                    {selected.username === null ? "Hesap sahibi" : `@${selected.username} · ${ROLE_LABELS[selected.role]}`}
                   </p>
                 </div>
                 <button

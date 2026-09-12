@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requirePageRole } from "@/lib/authz";
 import { getUserById } from "@/lib/db/users";
+import { getMemberPasswordHash } from "@/lib/db/members";
 import { getSubscriptionByUserId } from "@/lib/db/subscriptions";
 import { ProfileClient } from "./ProfileClient";
 
@@ -18,5 +19,6 @@ export default async function ProfilePage() {
   ]);
   if (!user) redirect("/sign-in");
 
-  return <ProfileClient user={user} subscription={subscription ?? null} />;
+  const hasProfilePassword = Boolean(await getMemberPasswordHash(actor.memberId));
+  return <ProfileClient user={user} subscription={subscription ?? null} hasProfilePassword={hasProfilePassword} />;
 }
