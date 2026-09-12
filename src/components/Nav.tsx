@@ -15,9 +15,12 @@ import {
   CalendarDays,
   ClipboardList,
   StickyNote,
+  FolderOpen,
+  MessageSquare,
   UserRound,
   Users,
 } from "lucide-react";
+import { UnreadBadge } from "@/components/UnreadBadge";
 
 const BASE_LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -25,6 +28,8 @@ const BASE_LINKS = [
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
   { href: "/tasks", label: "Görevler", icon: ClipboardList },
   { href: "/notes", label: "Notlarım", icon: StickyNote },
+  { href: "/files", label: "Belgeler", icon: FolderOpen },
+  { href: "/messages", label: "Mesajlar", icon: MessageSquare },
 ];
 
 const OWNER_ONLY_LINKS = [
@@ -76,6 +81,7 @@ export function Nav() {
                 >
                   <Icon className="h-4 w-4" />
                   {label}
+                  {href === "/messages" && <UnreadBadge />}
                 </Link>
               );
             })}
@@ -141,6 +147,7 @@ export function Nav() {
               >
                 <Icon className="h-4 w-4" />
                 {label}
+                {href === "/messages" && <UnreadBadge />}
               </Link>
             );
           })}

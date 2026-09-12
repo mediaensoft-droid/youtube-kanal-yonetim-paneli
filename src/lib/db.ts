@@ -322,6 +322,96 @@ async function bootstrapSchema(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_notes_userId_memberId_updatedAt ON notes(userId, memberId, updatedAt)`
   );
 
+  // Belge Havuzu (F): a shared, per-workspace folder tree + files stored in Vercel Blob.
+  // parentId CASCADEs so deleting a folder drops its whole subfolder chain; folderId on files is
+  // SET NULL by the FK (a safety net against orphaned rows), but deleteFolder() in db/files.ts
+  // explicitly deletes descendant file rows (and their blobs) first so "delete folder" really means
+  // delete its contents, not silently move them back to the root.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS doc_folders (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      parentId          INTEGER REFERENCES doc_folders(id) ON DELETE CASCADE,
+      name              TEXT NOT NULL,
+      createdByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      createdAt         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_doc_folders_userId_parentId ON doc_folders(userId, parentId)`
+  );
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS doc_files (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      folderId           INTEGER REFERENCES doc_folders(id) ON DELETE SET NULL,
+      name               TEXT NOT NULL,
+      blobUrl            TEXT NOT NULL,
+      blobPathname       TEXT,
+      size               INTEGER NOT NULL,
+      contentType        TEXT NOT NULL,
+      description        TEXT,
+      uploadedByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      createdAt          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_doc_files_userId_folderId ON doc_files(userId, folderId)`
+  );
+
+  // Ekip Mesajlaşması (G): one shared 'general' conversation per workspace plus 1:1 DMs between
+  // members. DM rows store the pair sorted (memberAId < memberBId) so a unique index can prevent
+  // duplicate DM conversations regardless of who initiated it.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type      TEXT NOT NULL DEFAULT 'general',
+      memberAId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      memberBId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      createdAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_conversations_userId_type ON conversations(userId, type)`
+  );
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_dm_pair ON conversations(userId, memberAId, memberBId) WHERE type = 'dm'`
+  );
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_general ON conversations(userId) WHERE type = 'general'`
+  );
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversationId INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      memberId       INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      body           TEXT NOT NULL DEFAULT '',
+      attachmentUrl  TEXT,
+      attachmentName TEXT,
+      attachmentSize INTEGER,
+      attachmentType TEXT,
+      createdAt      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_messages_conversationId_id ON messages(conversationId, id)`
+  );
+
+  // Per-member read cursor per conversation — upserted, and never moved backwards (see
+  // markRead() in db/messages.ts), so switching devices can't un-read something already seen.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS conversation_reads (
+      conversationId    INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      memberId          INTEGER REFERENCES members(id) ON DELETE CASCADE,
+      lastReadMessageId INTEGER NOT NULL DEFAULT 0,
+      updatedAt         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+      PRIMARY KEY (conversationId, memberId)
+    )
+  `);
+
   // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
   await db.execute(`
     INSERT INTO members (userId, role, displayName)
