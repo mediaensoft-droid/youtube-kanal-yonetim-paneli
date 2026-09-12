@@ -1,5 +1,7 @@
 import "server-only";
 import { all, get, run } from "@/lib/db";
+import { listMembers } from "@/lib/db/members";
+import type { ConversationsResponse } from "@/types";
 
 export type ConversationType = "general" | "dm";
 
@@ -42,11 +44,24 @@ export async function getOrCreateDm(userId: number, memberX: number, memberY: nu
     [userId, memberAId, memberBId]
   );
   if (existing) return existing;
-  const result = await run(
-    `INSERT INTO conversations (userId, type, memberAId, memberBId) VALUES (?, 'dm', ?, ?)`,
-    [userId, memberAId, memberBId]
-  );
-  return (await getConversationById(userId, result.lastInsertRowid))!;
+  try {
+    const result = await run(
+      `INSERT INTO conversations (userId, type, memberAId, memberBId) VALUES (?, 'dm', ?, ?)`,
+      [userId, memberAId, memberBId]
+    );
+    return (await getConversationById(userId, result.lastInsertRowid))!;
+  } catch (err) {
+    // Two simultaneous "first message" requests between the same pair can both reach the insert;
+    // the unique (userId, memberAId, memberBId) index rejects the loser — fetch the winner's row
+    // instead of failing the request.
+    const race = await get<Conversation>(
+      `SELECT ${CONVERSATION_COLUMNS} FROM conversations
+        WHERE userId = ? AND type = 'dm' AND memberAId = ? AND memberBId = ?`,
+      [userId, memberAId, memberBId]
+    );
+    if (race) return race;
+    throw err;
+  }
 }
 
 /** A general conversation is shared by the whole workspace; a DM only by its two members. */
@@ -106,6 +121,49 @@ export async function unreadCountsForMember(userId: number, memberId: number): P
   const counts: Record<number, number> = {};
   for (const row of rows) counts[row.conversationId] = row.count;
   return counts;
+}
+
+/**
+ * Everything the /messages screen and its Nav badge need: the general conversation plus one row
+ * per other workspace member — active members always, disabled ones only if a DM already exists
+ * with them (their history stays reachable, but they don't show up as a fresh DM target). Shared
+ * by the page's initial server render and the `GET /api/messages/conversations` polling route so
+ * the two never drift apart.
+ */
+export async function getConversationsSummary(userId: number, memberId: number): Promise<ConversationsResponse> {
+  const [members, { general, dms }, unread] = await Promise.all([
+    listMembers(userId),
+    listConversationsForMember(userId, memberId),
+    unreadCountsForMember(userId, memberId),
+  ]);
+
+  const dmByOtherMemberId = new Map(dms.map((dm) => [dm.otherMemberId, dm]));
+
+  const dmList = members
+    .filter((member) => member.id !== memberId)
+    .filter((member) => member.status === "active" || dmByOtherMemberId.has(member.id))
+    .map((member) => {
+      const dm = dmByOtherMemberId.get(member.id);
+      return {
+        memberId: member.id,
+        displayName: member.displayName,
+        status: member.status,
+        conversationId: dm?.conversationId ?? null,
+        unread: dm ? unread[dm.conversationId] ?? 0 : 0,
+        lastMessageAt: dm?.lastMessageAt ?? null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.lastMessageAt && b.lastMessageAt) return b.lastMessageAt.localeCompare(a.lastMessageAt);
+      if (a.lastMessageAt) return -1;
+      if (b.lastMessageAt) return 1;
+      return a.displayName.localeCompare(b.displayName, "tr");
+    });
+
+  return {
+    general: { id: general.id, unread: unread[general.id] ?? 0 },
+    dms: dmList,
+  };
 }
 
 export interface MessageRow {
