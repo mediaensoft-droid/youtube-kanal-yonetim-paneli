@@ -200,3 +200,15 @@ export const updateFileSchema = z.object({
   folderId: z.number().int().positive().nullable().optional(),
   description: z.string().trim().max(500, "Açıklama çok uzun").nullable().optional(),
 });
+
+export const createDmSchema = z.object({
+  memberId: z.number().int().positive(),
+});
+
+export const createMessageSchema = z.object({
+  body: z.string().trim().min(1, "Mesaj boş olamaz").max(4000, "Mesaj çok uzun"),
+});
+
+export const markReadSchema = z.object({
+  lastReadMessageId: z.number().int().min(0),
+});

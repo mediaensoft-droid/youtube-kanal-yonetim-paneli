@@ -268,3 +268,36 @@ export interface DocFolderTreeItem {
   parentId: number | null;
 }
 
+export interface Message {
+  id: number;
+  conversationId: number;
+  memberId: number | null;
+  /** Live join on members.displayName — null when the sender was removed since. */
+  memberName: string | null;
+  body: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentSize: number | null;
+  attachmentType: string | null;
+  createdAt: string;
+}
+
+export interface ConversationSummary {
+  id: number;
+  unread: number;
+}
+
+export interface DmSummary {
+  memberId: number;
+  displayName: string;
+  status: "active" | "disabled";
+  conversationId: number | null;
+  unread: number;
+  lastMessageAt: string | null;
+}
+
+export interface ConversationsResponse {
+  general: ConversationSummary;
+  dms: DmSummary[];
+}
+
