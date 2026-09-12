@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
   const actor = await requireActor();
   if (isResponse(actor)) return actor;
 
-  if (actor.role === "yonetici") {
-    return errorResponse(400, "Yönetici için profil sayfasını kullanın");
+  if (actor.isOwner) {
+    return errorResponse(400, "Hesap sahibi için profil sayfasını kullanın");
   }
 
   const json = await req.json().catch(() => null);

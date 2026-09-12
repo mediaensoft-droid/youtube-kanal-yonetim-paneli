@@ -238,7 +238,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
             </thead>
             <tbody>
               {members.map((member) => {
-                const isOwner = member.role === "yonetici";
+                const isOwner = member.username === null;
                 const isEditing = editId === member.id;
                 const isPasswording = passwordId === member.id;
 
@@ -285,7 +285,7 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
                     <td className="px-4 py-2.5">
                       {isOwner ? (
                         <div className="flex justify-end">
-                          <CategoryBadge name="Siz" color="#6B7280" />
+                          <CategoryBadge name="Hesap sahibi" color="#6B7280" />
                         </div>
                       ) : isEditing ? (
                         <div className="flex justify-end gap-1">

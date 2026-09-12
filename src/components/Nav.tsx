@@ -51,8 +51,9 @@ export function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { data: session } = useSession();
   const role = session?.member?.role;
-  const isOwner = role === "yonetici";
-  const links = isOwner ? [...BASE_LINKS, ...OWNER_ONLY_LINKS] : BASE_LINKS;
+  const isAdmin = role === "yonetici";
+  const isOwner = Boolean(session?.member?.isOwner);
+  const links = isAdmin ? [...BASE_LINKS, ...OWNER_ONLY_LINKS] : BASE_LINKS;
   const accountHref = isOwner ? "/profile" : "/account";
   const accountLabel = isOwner ? "Profil" : "Hesabım";
 

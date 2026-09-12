@@ -16,6 +16,8 @@ export interface Actor {
   memberId: number;
   role: MemberRole;
   displayName: string;
+  /** The Google-authenticated workspace owner (has /profile and billing); staff — even yonetici — use /account. */
+  isOwner: boolean;
 }
 
 // NextAuth surfaces `code` to the client's `signIn(..., { redirect: false })` result, so the
@@ -65,6 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.memberId = user.memberId;
         token.role = user.role;
         token.displayName = user.name ?? "";
+        token.isOwner = false;
         return token;
       }
       if (user?.email) {
@@ -75,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.memberId = owner.id;
         token.role = "yonetici";
         token.displayName = owner.displayName;
+        token.isOwner = true;
         // `user` is only set on the actual sign-in request, never on later JWT refreshes — so
         // this only fires once per real login, same as the staff branch above.
         await logActivity({ workspaceId: dbUser.id, memberId: owner.id }, { action: "auth.login", entityType: "auth" });
@@ -88,6 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.memberId = owner.id;
           token.role = "yonetici";
           token.displayName = owner.displayName;
+          token.isOwner = true;
         }
       }
       return token;
@@ -99,7 +104,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Staff role/name come from the live member row (see below) so a promotion/demotion
         // takes effect immediately instead of after the JWT expires; owners keep token.role.
         let liveRole: MemberRole | undefined;
-        if (token.role === "yonetici") {
+        // Tokens minted before isOwner existed belong to Google owners (staff tokens always set it).
+        const isOwner = token.isOwner !== false;
+        if (isOwner) {
           // The DB row (editable on /profile) is the source of truth for name/image, not
           // whatever Google's token happened to carry at sign-in time.
           const dbUser = await getUserById(userId);
@@ -123,6 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: Number(token.memberId),
           role: liveRole ?? token.role ?? "yonetici",
           displayName: session.user.name ?? "",
+          isOwner,
         };
       }
       return session;
@@ -144,5 +152,6 @@ export async function getSessionActor(): Promise<Actor | null> {
     memberId: session.member.id,
     role: session.member.role,
     displayName: session.member.displayName,
+    isOwner: session.member.isOwner,
   };
 }

@@ -48,6 +48,6 @@ describe("can()", () => {
   it("role guard", () => {
     expect(isMemberRole("vekil")).toBe(true);
     expect(isMemberRole("admin")).toBe(false);
-    expect(STAFF_ROLES).not.toContain("yonetici");
+    expect(STAFF_ROLES).toContain("yonetici");
   });
 });

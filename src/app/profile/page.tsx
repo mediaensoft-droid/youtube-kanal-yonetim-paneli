@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const actor = await requirePageRole("billing.view");
+  // /profile edits the owner's Google account; staff admins manage their own name/password on /account.
+  if (!actor.isOwner) redirect("/account");
   const userId = actor.workspaceId;
 
   const [user, subscription] = await Promise.all([

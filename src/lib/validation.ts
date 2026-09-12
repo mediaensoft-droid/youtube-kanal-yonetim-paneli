@@ -107,12 +107,12 @@ export const createMemberSchema = z.object({
   displayName: z.string().trim().min(1, "Ad gerekli").max(60),
   username: usernameSchema,
   password: passwordSchema,
-  role: z.enum(["vekil", "duzenleyici", "goruntuleyici"]),
+  role: z.enum(["yonetici", "vekil", "duzenleyici", "goruntuleyici"]),
 });
 
 export const updateMemberSchema = z.object({
   displayName: z.string().trim().min(1, "Ad gerekli").max(60).optional(),
-  role: z.enum(["vekil", "duzenleyici", "goruntuleyici"]).optional(),
+  role: z.enum(["yonetici", "vekil", "duzenleyici", "goruntuleyici"]).optional(),
   status: z.enum(["active", "disabled"]).optional(),
 });
 

@@ -7,8 +7,8 @@ export const ROLE_LABELS: Record<MemberRole, string> = {
   goruntuleyici: "Görüntüleyici",
 };
 
-/** Roles the owner can assign to staff (the owner alone is yonetici). */
-export const STAFF_ROLES: MemberRole[] = ["vekil", "duzenleyici", "goruntuleyici"];
+/** Roles assignable to staff accounts. The workspace owner (Google login, no username) is always yonetici. */
+export const STAFF_ROLES: MemberRole[] = ["yonetici", "vekil", "duzenleyici", "goruntuleyici"];
 
 export type Permission =
   | "channel.write" // add / edit / refresh / status change (incl. planned)

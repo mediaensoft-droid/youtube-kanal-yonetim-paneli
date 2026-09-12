@@ -68,6 +68,7 @@ export const AI_TOOLS: AiTool[] = [
 
   // Seslendirme / TTS
   { id: "elevenlabs", name: "ElevenLabs", url: "https://elevenlabs.io", domain: "elevenlabs.io", category: "seslendirme-tts" },
+  { id: "voispark", name: "VoiSpark", url: "https://voispark.com", domain: "voispark.com", category: "seslendirme-tts" },
   { id: "murf", name: "Murf", url: "https://murf.ai", domain: "murf.ai", category: "seslendirme-tts" },
   { id: "play-ht", name: "Play.ht", url: "https://play.ht", domain: "play.ht", category: "seslendirme-tts" },
   { id: "speechify", name: "Speechify", url: "https://speechify.com", domain: "speechify.com", category: "seslendirme-tts" },

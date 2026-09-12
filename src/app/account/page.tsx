@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage() {
   const actor = await getSessionActor();
   if (!actor) redirect("/sign-in");
-  if (actor.role === "yonetici") redirect("/profile");
+  if (actor.isOwner) redirect("/profile");
 
   const member = await getMemberById(actor.memberId);
   if (!member) redirect("/sign-in");

@@ -22,8 +22,8 @@ export async function POST(req: NextRequest, { params }: RouteContext) {
   if (!existing || existing.userId !== actor.workspaceId) {
     return errorResponse(404, "Üye bulunamadı");
   }
-  if (existing.role === "yonetici") {
-    return errorResponse(400, "Yönetici hesabı düzenlenemez");
+  if (existing.username === null) {
+    return errorResponse(400, "Hesap sahibi düzenlenemez");
   }
 
   const json = await req.json().catch(() => null);
