@@ -29,8 +29,20 @@ export async function ensureGeneralConversation(userId: number): Promise<Convers
     [userId]
   );
   if (existing) return existing;
-  const result = await run(`INSERT INTO conversations (userId, type) VALUES (?, 'general')`, [userId]);
-  return (await getConversationById(userId, result.lastInsertRowid))!;
+  try {
+    const result = await run(`INSERT INTO conversations (userId, type) VALUES (?, 'general')`, [userId]);
+    return (await getConversationById(userId, result.lastInsertRowid))!;
+  } catch (err) {
+    // Two simultaneous first-visit requests can both reach the insert; the unique
+    // (userId) WHERE type = 'general' index rejects the loser — fetch the winner's row
+    // instead of failing the request (same pattern as getOrCreateDm above).
+    const race = await get<Conversation>(
+      `SELECT ${CONVERSATION_COLUMNS} FROM conversations WHERE userId = ? AND type = 'general'`,
+      [userId]
+    );
+    if (race) return race;
+    throw err;
+  }
 }
 
 /** Gets or creates the 1:1 conversation between two members — the pair is stored sorted
@@ -191,8 +203,12 @@ export interface ListMessagesOptions {
 }
 
 /** `after`/`before` page by message id (never both at once in practice). Results are always
- * returned oldest-first, even when paging backwards with `before` (which queries newest-first
- * internally to get the right page, then reverses it). */
+ * returned oldest-first, even when paging newest-first internally.
+ *
+ * With no `after` at all (initial load, and `before` for scroll-back paging), we want the
+ * NEWEST page, not the oldest — so that case queries DESC with LIMIT and reverses the result
+ * into ascending order, same as explicit `before` paging. `after` is the only cursor that keeps
+ * the plain ascending/incremental behavior (used by polling, and internally by createMessage). */
 export async function listMessages(
   userId: number,
   conversationId: number,
@@ -209,8 +225,8 @@ export async function listMessages(
     conditions.push("m.id < ?");
     params.push(options.before);
   }
-  const pagingBackwards = options.before !== undefined;
-  const order = pagingBackwards ? "DESC" : "ASC";
+  const pagingNewestFirst = options.after === undefined;
+  const order = pagingNewestFirst ? "DESC" : "ASC";
 
   const rows = await all<MessageRow>(
     `SELECT ${MESSAGE_COLUMNS}
@@ -222,7 +238,7 @@ export async function listMessages(
       LIMIT ?`,
     [...params, limit]
   );
-  return pagingBackwards ? rows.reverse() : rows;
+  return pagingNewestFirst ? rows.reverse() : rows;
 }
 
 export interface CreateMessageAttachment {

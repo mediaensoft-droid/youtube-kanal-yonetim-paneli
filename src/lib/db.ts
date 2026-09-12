@@ -379,6 +379,9 @@ async function bootstrapSchema(): Promise<void> {
   await db.execute(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_dm_pair ON conversations(userId, memberAId, memberBId) WHERE type = 'dm'`
   );
+  await db.execute(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_conversations_general ON conversations(userId) WHERE type = 'general'`
+  );
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -402,7 +405,7 @@ async function bootstrapSchema(): Promise<void> {
   await db.execute(`
     CREATE TABLE IF NOT EXISTS conversation_reads (
       conversationId    INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-      memberId          INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      memberId          INTEGER REFERENCES members(id) ON DELETE CASCADE,
       lastReadMessageId INTEGER NOT NULL DEFAULT 0,
       updatedAt         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       PRIMARY KEY (conversationId, memberId)

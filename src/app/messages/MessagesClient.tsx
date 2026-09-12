@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { toast } from "sonner";
-import { File as FileIcon, Loader2, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, File as FileIcon, Loader2, Paperclip, Send, X } from "lucide-react";
 import type { ConversationsResponse, DmSummary, Message } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
@@ -48,6 +48,16 @@ async function readError(res: Response, fallback: string): Promise<string> {
 
 function isNearBottom(el: HTMLDivElement, threshold = 96): boolean {
   return el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+}
+
+/** Local (not UTC) y-m-d key for a message's `createdAt`, so the day separator lines up with
+ * the reader's own calendar day instead of the server's UTC one. */
+function localDateKey(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function sendWithFile(
@@ -182,8 +192,12 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
   const lastIdRef = useRef(0);
   const markedIdRef = useRef(0);
   const stickToBottomRef = useRef(true);
+  // Bumped on every openConversation call so a slower, earlier open can recognize it's been
+  // superseded and drop its response instead of clobbering the conversation now on screen.
+  const openRequestIdRef = useRef(0);
 
   const openConversation = useCallback(async (next: ActiveConversation) => {
+    const requestId = ++openRequestIdRef.current;
     setActive(next);
     setMessages([]);
     setSelectedFile(null);
@@ -197,24 +211,34 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
     setLoadingMessages(true);
     try {
       const res = await fetch(`/api/messages/${next.conversationId}`);
+      if (openRequestIdRef.current !== requestId) return; // a newer open() started meanwhile
       if (!res.ok) throw new Error(await readError(res, "Mesajlar yüklenemedi"));
       const data: Message[] = await res.json();
+      if (openRequestIdRef.current !== requestId) return;
       setMessages(data);
       if (data.length > 0) {
         const maxId = data[data.length - 1].id;
         lastIdRef.current = maxId;
         markedIdRef.current = maxId;
-        await fetch(`/api/messages/${next.conversationId}/read`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lastReadMessageId: maxId }),
-        }).catch(() => {});
-        setConversations((prev) => zeroUnreadForConversation(prev, next.conversationId!));
+        // Only mark read while this is still the open conversation — and re-check after the
+        // await, since a newer open() may have started while this request was in flight.
+        if (openRequestIdRef.current === requestId) {
+          await fetch(`/api/messages/${next.conversationId}/read`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lastReadMessageId: maxId }),
+          }).catch(() => {});
+          if (openRequestIdRef.current === requestId) {
+            setConversations((prev) => zeroUnreadForConversation(prev, next.conversationId!));
+          }
+        }
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Mesajlar yüklenemedi");
+      if (openRequestIdRef.current === requestId) {
+        toast.error(err instanceof Error ? err.message : "Mesajlar yüklenemedi");
+      }
     } finally {
-      setLoadingMessages(false);
+      if (openRequestIdRef.current === requestId) setLoadingMessages(false);
     }
   }, []);
 
@@ -318,7 +342,7 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
     const items: Array<{ kind: "separator"; date: string } | { kind: "message"; message: ClientMessage }> = [];
     let lastDate = "";
     for (const message of messages) {
-      const date = message.createdAt.slice(0, 10);
+      const date = localDateKey(message.createdAt);
       if (date !== lastDate) {
         items.push({ kind: "separator", date });
         lastDate = date;
@@ -401,7 +425,12 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
         saved = await res.json();
       }
       stickToBottomRef.current = true;
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...saved } : m)));
+      // The 4s poll can deliver this same row (by its real id) before this POST resolves —
+      // if it already landed, drop our optimistic placeholder instead of adding a duplicate.
+      setMessages((prev) =>
+        prev.some((m) => m.id === saved.id) ? prev.filter((m) => m.id !== tempId) : prev.map((m) => (m.id === tempId ? { ...saved } : m))
+      );
+      if (optimistic.attachmentUrl) URL.revokeObjectURL(optimistic.attachmentUrl);
       lastIdRef.current = Math.max(lastIdRef.current, saved.id);
       markedIdRef.current = Math.max(markedIdRef.current, saved.id);
     } catch (err) {
@@ -421,7 +450,14 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
       </div>
 
       <div className="flex h-[calc(100vh-16rem)] min-h-[420px] gap-4">
-        <aside className="flex w-72 shrink-0 flex-col overflow-y-auto rounded-md border border-line bg-surface-2 p-1.5">
+        {/* Phone width: the list and the message pane take turns filling the screen — the list
+            shows while nothing is open, the pane (with its own back button) once something is. */}
+        <aside
+          className={clsx(
+            "w-full shrink-0 flex-col overflow-y-auto rounded-md border border-line bg-surface-2 p-1.5 sm:flex sm:w-72",
+            active ? "hidden" : "flex"
+          )}
+        >
           <ConversationRow
             label="Genel"
             unread={conversations.general.unread}
@@ -452,13 +488,26 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
           ))}
         </aside>
 
-        <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-line bg-surface-2">
+        <section
+          className={clsx(
+            "flex-1 flex-col overflow-hidden rounded-md border border-line bg-surface-2 sm:flex",
+            active ? "flex" : "hidden"
+          )}
+        >
           {!active ? (
             <div className="flex flex-1 items-center justify-center text-sm text-ink-muted">Bir sohbet seçin</div>
           ) : (
             <>
-              <header className="shrink-0 border-b border-line px-4 py-3">
-                <h2 className="text-sm font-semibold text-ink">{active.title}</h2>
+              <header className="flex shrink-0 items-center gap-2 border-b border-line px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => setActive(null)}
+                  className="-ml-1 flex shrink-0 items-center gap-1 rounded-md p-1 text-sm text-ink-muted transition-colors duration-150 hover:text-ink sm:hidden"
+                  aria-label="Sohbetlere dön"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Sohbetler
+                </button>
+                <h2 className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{active.title}</h2>
               </header>
 
               <div ref={scrollRef} className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-3">
@@ -473,7 +522,7 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
                     item.kind === "separator" ? (
                       <div key={`sep-${item.date}`} className="my-3 flex items-center justify-center">
                         <span className="rounded-full bg-surface px-3 py-1 text-xs text-ink-faint">
-                          {formatDate(`${item.date}T00:00:00.000Z`)}
+                          {formatDate(`${item.date}T00:00:00`)}
                         </span>
                       </div>
                     ) : (
@@ -555,7 +604,7 @@ export function MessagesClient({ initialConversations, currentMemberId }: Messag
                     value={composerText}
                     onChange={(e) => setComposerText(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
+                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                         e.preventDefault();
                         void handleSend();
                       }

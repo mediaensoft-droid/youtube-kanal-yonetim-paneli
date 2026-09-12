@@ -42,7 +42,10 @@ export function UnreadBadge() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [session?.user]);
+    // A new session object (e.g. on token refresh) shouldn't restart the poll — only a change
+    // in signed-in-ness should.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(session?.user)]);
 
   if (!session?.user || total <= 0) return null;
 

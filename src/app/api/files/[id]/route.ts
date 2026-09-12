@@ -31,7 +31,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   try {
     file = await updateFile(actor.workspaceId, fileId, parsed.data);
   } catch (err) {
-    return errorResponse(400, err instanceof Error ? err.message : "Dosya güncellenemedi");
+    const message = err instanceof Error ? err.message : "Dosya güncellenemedi";
+    // A missing/foreign target folderId reads as "not found", consistent with the POST route.
+    return errorResponse(message === "Klasör bulunamadı" ? 404 : 400, message);
   }
 
   return okResponse(file);
