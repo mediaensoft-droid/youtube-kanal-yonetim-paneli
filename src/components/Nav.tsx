@@ -18,6 +18,7 @@ import {
   FolderOpen,
   MessageSquare,
   UserRound,
+  UsersRound,
   Users,
 } from "lucide-react";
 import { UnreadBadge } from "@/components/UnreadBadge";
@@ -109,6 +110,13 @@ export function Nav() {
                 </div>
               )}
             </Link>
+            <Link
+              href="/profiles"
+              title="Profil değiştir"
+              className="flex items-center justify-center rounded-md p-1.5 text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+            >
+              <UsersRound className="h-4 w-4" />
+            </Link>
             <button
               type="button"
               onClick={() => signOut({ redirectTo: "/sign-in" })}
@@ -166,6 +174,14 @@ export function Nav() {
               >
                 <UserRound className="h-4 w-4" />
                 {accountLabel}
+              </Link>
+              <Link
+                href="/profiles"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-ink-muted transition-colors duration-150 hover:bg-surface-hover hover:text-ink"
+              >
+                <UsersRound className="h-4 w-4" />
+                Profil değiştir
               </Link>
               <button
                 type="button"

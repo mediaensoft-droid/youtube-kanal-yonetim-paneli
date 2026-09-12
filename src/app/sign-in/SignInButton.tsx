@@ -12,7 +12,7 @@ export function SignInButton({ size = "md", className }: SignInButtonProps) {
   return (
     <button
       type="button"
-      onClick={() => signIn("google", { redirectTo: "/" })}
+      onClick={() => signIn("google", { redirectTo: "/profiles" })}
       className={clsx(
         "inline-flex items-center justify-center gap-2.5 rounded-md border border-line bg-surface font-medium text-ink transition-all duration-150 hover:-translate-y-0.5 hover:bg-surface-hover active:scale-[0.97]",
         size === "lg" ? "px-6 py-3.5 text-base shadow-lg shadow-black/20" : "px-4 py-2.5 text-sm",
