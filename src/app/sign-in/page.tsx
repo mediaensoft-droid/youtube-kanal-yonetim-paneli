@@ -47,7 +47,7 @@ export default async function SignInPage() {
   const { total: totalSubscribers, bars: subscriberBars } = await getSubscriberSnapshot();
 
   return (
-    <div className="animate-fade-in-up">
+    <div className="animate-fade-in-up overflow-x-clip">
       {/* Hero */}
       <section className="grid grid-cols-1 items-center gap-10 py-10 lg:grid-cols-2 lg:gap-12 lg:py-16">
         <div className="stagger">
