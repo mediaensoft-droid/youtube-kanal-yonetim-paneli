@@ -252,7 +252,17 @@ export function TeamClient({ initialMembers }: TeamClientProps) {
                           className="max-w-[220px]"
                         />
                       ) : (
-                        <span className="font-medium text-ink">{member.displayName}</span>
+                        <span className="flex items-center gap-2 font-medium text-ink">
+                          {member.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={member.image} alt="" className="h-7 w-7 rounded-full object-cover" />
+                          ) : (
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-hover text-xs text-ink-muted">
+                              {member.displayName.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?"}
+                            </span>
+                          )}
+                          {member.displayName}
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-ink-muted">

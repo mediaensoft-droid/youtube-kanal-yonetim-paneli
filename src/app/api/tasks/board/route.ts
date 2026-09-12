@@ -26,7 +26,7 @@ export async function GET() {
   return okResponse({
     columns,
     tasks,
-    members: members.map((member) => ({ id: member.id, displayName: member.displayName, status: member.status })),
+    members: members.map((member) => ({ id: member.id, displayName: member.displayName, status: member.status, image: member.image })),
     channels,
   });
 }

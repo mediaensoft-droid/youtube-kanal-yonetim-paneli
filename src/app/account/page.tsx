@@ -19,6 +19,7 @@ export default async function AccountPage() {
       displayName={member.displayName}
       username={member.username ?? ""}
       roleLabel={ROLE_LABELS[member.role]}
+      image={member.image}
     />
   );
 }

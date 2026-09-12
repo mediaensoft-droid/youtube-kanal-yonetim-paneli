@@ -220,12 +220,23 @@ async function bootstrapSchema(): Promise<void> {
       username     TEXT UNIQUE,
       passwordHash TEXT,
       status       TEXT NOT NULL DEFAULT 'active',
+      image        TEXT,
       lastLoginAt  TEXT,
       createdAt    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
       updatedAt    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     )
   `);
   await db.execute(`CREATE INDEX IF NOT EXISTS idx_members_userId ON members(userId)`);
+  // members existed before staff profile photos; backfill the column.
+  const membersInfo = await db.execute(`PRAGMA table_info(members)`);
+  if (!membersInfo.rows.some((row) => row.name === "image")) {
+    try {
+      await db.execute(`ALTER TABLE members ADD COLUMN image TEXT`);
+    } catch (err) {
+      const isDuplicateColumn = err instanceof Error && /duplicate column/i.test(err.message);
+      if (!isDuplicateColumn) throw err;
+    }
+  }
   await db.execute(
     `DROP INDEX IF EXISTS idx_members_owner`
   );

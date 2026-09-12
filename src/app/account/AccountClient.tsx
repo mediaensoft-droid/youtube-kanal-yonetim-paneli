@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { Camera, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
@@ -10,10 +12,55 @@ interface AccountClientProps {
   displayName: string;
   username: string;
   roleLabel: string;
+  image: string | null;
 }
 
-export function AccountClient({ displayName, username, roleLabel }: AccountClientProps) {
+export function AccountClient({ displayName, username, roleLabel, image: initialImage }: AccountClientProps) {
   const router = useRouter();
+  const { update } = useSession();
+  const [image, setImage] = useState<string | null>(initialImage);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/account/avatar", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Yükleme başarısız oldu");
+      setImage(data.image);
+      await update();
+      router.refresh();
+      toast.success("Profil fotoğrafı güncellendi");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Yükleme başarısız oldu");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRemovePhoto() {
+    setUploading(true);
+    try {
+      const res = await fetch("/api/account/avatar", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Kaldırılamadı");
+      setImage(null);
+      await update();
+      router.refresh();
+      toast.success("Profil fotoğrafı kaldırıldı");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Kaldırılamadı");
+    } finally {
+      setUploading(false);
+    }
+  }
+
 
   const [name, setName] = useState(displayName);
   const [currentName, setCurrentName] = useState(displayName);
@@ -86,6 +133,49 @@ export function AccountClient({ displayName, username, roleLabel }: AccountClien
       <h1 className="mb-6 text-2xl font-semibold text-ink">Hesabım</h1>
 
       <div className="rounded-lg border border-line bg-surface p-5 shadow-sm">
+        <div className="mb-5 flex items-center gap-5">
+          <div className="group relative h-24 w-24 shrink-0">
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image} alt={currentName} className="h-24 w-24 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-surface-hover text-3xl font-semibold text-ink-muted">
+                {currentName.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?"}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              title="Fotoğrafı değiştir"
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-transparent transition-colors duration-150 group-hover:bg-black/50 group-hover:text-white disabled:pointer-events-none"
+            >
+              <Camera className="h-6 w-6" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold text-ink">{currentName}</p>
+            <p className="truncate text-sm text-ink-muted">@{username}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                <Camera className="h-3.5 w-3.5" />
+                {uploading ? "Yükleniyor..." : "Fotoğraf değiştir"}
+              </Button>
+              {image && (
+                <Button type="button" variant="ghost" size="sm" onClick={handleRemovePhoto} disabled={uploading}>
+                  <Trash2 className="h-3.5 w-3.5" /> Kaldır
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="text-xs text-ink-faint">Kullanıcı adı</p>

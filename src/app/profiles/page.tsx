@@ -23,7 +23,7 @@ export default async function ProfilesPage() {
       displayName: m.displayName,
       username: m.username,
       role: m.role,
-      image: m.username === null ? (owner?.image ?? null) : null,
+      image: m.username === null ? (owner?.image ?? null) : m.image,
     }));
 
   return (

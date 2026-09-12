@@ -133,7 +133,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
             return { ...session, user: { ...session.user, id: "" } };
           }
           session.user.name = member.displayName;
-          session.user.image = null;
+          session.user.image = member.image;
           liveRole = member.role;
         }
         session.member = {

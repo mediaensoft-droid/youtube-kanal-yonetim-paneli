@@ -17,6 +17,7 @@ export interface BoardMember {
   id: number;
   displayName: string;
   status: "active" | "disabled";
+  image?: string | null;
 }
 
 export interface BoardChannel {

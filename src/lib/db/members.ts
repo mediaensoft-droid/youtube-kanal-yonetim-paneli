@@ -11,6 +11,8 @@ export interface Member {
   displayName: string;
   username: string | null;
   status: MemberStatus;
+  /** Staff profile photo (Blob URL); the owner's photo lives on users.image. */
+  image: string | null;
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +20,7 @@ export interface Member {
 
 type MemberRow = Member & { passwordHash: string | null };
 
-const PUBLIC_COLUMNS = `id, userId, role, displayName, username, status, lastLoginAt, createdAt, updatedAt`;
+const PUBLIC_COLUMNS = `id, userId, role, displayName, username, status, image, lastLoginAt, createdAt, updatedAt`;
 
 export async function ensureOwnerMember(userId: number, displayName: string): Promise<Member> {
   const existing = await get<Member>(
@@ -104,4 +106,11 @@ export async function setMemberPasswordHash(userId: number, id: number, password
 
 export async function touchMemberLogin(id: number): Promise<void> {
   await run(`UPDATE members SET lastLoginAt = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`, [id]);
+}
+
+export async function setMemberImage(userId: number, id: number, image: string | null): Promise<void> {
+  await run(
+    `UPDATE members SET image = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND userId = ?`,
+    [image, id, userId]
+  );
 }

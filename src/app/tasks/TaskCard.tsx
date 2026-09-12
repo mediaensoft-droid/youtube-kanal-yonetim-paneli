@@ -75,12 +75,17 @@ export function TaskCard({
       {hasMeta && (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-ink-muted">
           {assignee && (
-            <span
-              title={assignee.displayName}
-              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-semibold text-ink"
-            >
-              {assignee.displayName.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?"}
-            </span>
+            assignee.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={assignee.image} alt={assignee.displayName} title={assignee.displayName} className="h-5 w-5 shrink-0 rounded-full object-cover" />
+            ) : (
+              <span
+                title={assignee.displayName}
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[11px] font-semibold text-ink"
+              >
+                {assignee.displayName.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?"}
+              </span>
+            )
           )}
 
           {task.dueDate && (
