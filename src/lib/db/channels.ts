@@ -19,6 +19,7 @@ interface ChannelRow {
   publishDays: string;
   publishTime: string | null;
   status: ChannelStatus;
+  aiTools: string;
   createdByMemberId: number | null;
   statusChangedByMemberId: number | null;
   statusChangedAt: string | null;
@@ -49,6 +50,7 @@ function rowToChannel(row: ChannelRow): Channel {
     publishDays: JSON.parse(row.publishDays) as number[],
     publishTime: row.publishTime,
     status: row.status,
+    aiTools: JSON.parse(row.aiTools) as string[],
     createdByMemberId: row.createdByMemberId,
     statusChangedByMemberId: row.statusChangedByMemberId,
     statusChangedAt: row.statusChangedAt,
@@ -188,14 +190,15 @@ export interface CreateChannelRecord {
   countries: string[];
   notes: string | null;
   status: ChannelStatus;
+  aiTools: string[];
   createdByMemberId: number;
 }
 
 export async function createChannel(userId: number, input: CreateChannelRecord): Promise<Channel> {
   const result = await run(
     `INSERT INTO channels
-      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryIds, conceptIds, languages, countries, notes, status, createdByMemberId)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (userId, youtubeId, url, name, thumbnailUrl, subscriberCount, videoCount, viewCount, categoryIds, conceptIds, languages, countries, notes, status, aiTools, createdByMemberId)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       input.youtubeId,
@@ -211,6 +214,7 @@ export async function createChannel(userId: number, input: CreateChannelRecord):
       JSON.stringify(input.countries),
       input.notes,
       input.status,
+      JSON.stringify(input.aiTools),
       input.createdByMemberId,
     ]
   );
@@ -226,6 +230,7 @@ export interface UpdateChannelManualFields {
   publishDays?: number[];
   publishTime?: string | null;
   url?: string;
+  aiTools?: string[];
 }
 
 export async function updateChannelManualFields(
@@ -245,10 +250,11 @@ export async function updateChannelManualFields(
   const publishDays = input.publishDays ?? existing.publishDays;
   const publishTime = input.publishTime !== undefined ? input.publishTime : existing.publishTime;
   const url = input.url ?? existing.url;
+  const aiTools = input.aiTools ?? existing.aiTools;
 
   await run(
     `UPDATE channels
-       SET categoryIds = ?, conceptIds = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, publishTime = ?, url = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       SET categoryIds = ?, conceptIds = ?, languages = ?, countries = ?, notes = ?, publishDays = ?, publishTime = ?, url = ?, aiTools = ?, updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE id = ? AND userId = ?`,
     [
       JSON.stringify(categoryIds),
@@ -259,6 +265,7 @@ export async function updateChannelManualFields(
       JSON.stringify(publishDays),
       publishTime,
       url,
+      JSON.stringify(aiTools),
       id,
       userId,
     ]

@@ -1,8 +1,17 @@
 import { z } from "zod";
+import { AI_TOOL_IDS } from "@/lib/aiTools";
 
 const hexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Geçerli bir hex renk kodu girin (#RRGGBB)");
 
 const idList = z.array(z.number().int().positive()).optional();
+
+const aiToolsList = z
+  .array(z.string())
+  .optional()
+  .refine((ids) => !ids || ids.every((id) => AI_TOOL_IDS.has(id)), {
+    message: "Bilinmeyen yapay zeka aracı",
+  })
+  .transform((ids) => ids && [...new Set(ids)]);
 
 export const createChannelSchema = z.object({
   input: z.string().trim().min(1, "YouTube URL veya kanal ID'si gerekli"),
@@ -13,6 +22,7 @@ export const createChannelSchema = z.object({
   languages: z.array(z.string()).optional(),
   countries: z.array(z.string()).optional(),
   notes: z.string().nullable().optional(),
+  aiTools: aiToolsList,
 });
 
 export const updateChannelSchema = z.object({
@@ -29,6 +39,7 @@ export const updateChannelSchema = z.object({
     .optional(),
   url: z.string().trim().min(1).optional(),
   status: z.enum(["active", "passive", "planned"]).optional(),
+  aiTools: aiToolsList,
 });
 
 export const createCategorySchema = z.object({
@@ -161,4 +172,15 @@ export const moveTaskSchema = z.object({
 
 export const taskCommentSchema = z.object({
   body: z.string().trim().min(1, "Yorum boş olamaz").max(2000, "Yorum çok uzun"),
+});
+
+export const createNoteSchema = z.object({
+  title: z.string().max(200, "Başlık çok uzun").default(""),
+  body: z.string().max(50000, "Not çok uzun").default(""),
+});
+
+export const updateNoteSchema = z.object({
+  title: z.string().max(200, "Başlık çok uzun").optional(),
+  body: z.string().max(50000, "Not çok uzun").optional(),
+  pinned: z.boolean().optional(),
 });

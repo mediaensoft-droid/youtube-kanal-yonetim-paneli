@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import type { Channel, Category, Concept } from "@/types";
 import { ChannelTagBadges } from "@/components/ChannelTagBadges";
+import { ChannelAiToolLogos } from "@/components/ChannelAiToolLogos";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ChannelDeleteWarning } from "@/components/ChannelDeleteWarning";
 import { ChannelPassiveWarning } from "@/components/ChannelPassiveWarning";
@@ -157,6 +158,7 @@ export function ChannelListRow({ channel, categories, concepts, onRefreshed, onD
                   {countryFlagEmoji(code)} {getCountryName(code)}
                 </span>
               ))}
+              {channel.aiTools.length > 0 && <ChannelAiToolLogos toolIds={channel.aiTools} />}
             </div>
           </div>
         </div>
