@@ -15,6 +15,7 @@ import {
   CalendarDays,
   ClipboardList,
   StickyNote,
+  FolderOpen,
   UserRound,
   Users,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const BASE_LINKS = [
   { href: "/calendar", label: "Takvim", icon: CalendarDays },
   { href: "/tasks", label: "Görevler", icon: ClipboardList },
   { href: "/notes", label: "Notlarım", icon: StickyNote },
+  { href: "/files", label: "Belgeler", icon: FolderOpen },
 ];
 
 const OWNER_ONLY_LINKS = [
