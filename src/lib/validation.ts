@@ -184,3 +184,19 @@ export const updateNoteSchema = z.object({
   body: z.string().max(50000, "Not çok uzun").optional(),
   pinned: z.boolean().optional(),
 });
+
+export const createFolderSchema = z.object({
+  name: z.string().trim().min(1, "Klasör adı gerekli").max(120, "Klasör adı çok uzun"),
+  parentId: z.number().int().positive().nullable().optional(),
+});
+
+export const updateFolderSchema = z.object({
+  name: z.string().trim().min(1, "Klasör adı gerekli").max(120, "Klasör adı çok uzun").optional(),
+  parentId: z.number().int().positive().nullable().optional(),
+});
+
+export const updateFileSchema = z.object({
+  name: z.string().trim().min(1, "Dosya adı gerekli").max(200, "Dosya adı çok uzun").optional(),
+  folderId: z.number().int().positive().nullable().optional(),
+  description: z.string().trim().max(500, "Açıklama çok uzun").nullable().optional(),
+});

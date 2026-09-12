@@ -180,6 +180,28 @@ describe("describeActivity", () => {
     );
   });
 
+  it("file.upload", () => {
+    expect(describeActivity({ action: "file.upload", entityName: "rapor.pdf" }).text).toBe(
+      "dosyasını yükledi"
+    );
+  });
+
+  it("file.delete", () => {
+    expect(describeActivity({ action: "file.delete", entityName: "rapor.pdf" }).text).toBe("dosyasını sildi");
+  });
+
+  it("folder.create", () => {
+    expect(describeActivity({ action: "folder.create", entityName: "Faturalar" }).text).toBe(
+      "klasörünü oluşturdu"
+    );
+  });
+
+  it("folder.delete", () => {
+    expect(describeActivity({ action: "folder.delete", entityName: "Faturalar" }).text).toBe(
+      "klasörünü sildi"
+    );
+  });
+
   it("ACTION_LABELS and ACTIVITY_TYPES cover every known action", () => {
     const allActions = Object.values(ACTIVITY_TYPES).flat();
     for (const action of allActions) {

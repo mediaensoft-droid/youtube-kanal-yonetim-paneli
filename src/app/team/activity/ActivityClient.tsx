@@ -35,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   member: "Personel",
   auth: "Giriş",
   task: "Görev",
+  files: "Belgeler",
 };
 
 const TIME_FORMAT = new Intl.DateTimeFormat("tr-TR", { hour: "2-digit", minute: "2-digit" });

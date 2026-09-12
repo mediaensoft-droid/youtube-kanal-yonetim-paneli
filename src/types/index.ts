@@ -159,7 +159,16 @@ export interface UpsertChannelMonthPatternInput {
   publishDays: number[];
 }
 
-export type ActivityEntityType = "channel" | "category" | "concept" | "schedule" | "member" | "auth" | "task";
+export type ActivityEntityType =
+  | "channel"
+  | "category"
+  | "concept"
+  | "schedule"
+  | "member"
+  | "auth"
+  | "task"
+  | "folder"
+  | "file";
 
 export interface ActivityItem {
   id: number;
@@ -225,5 +234,37 @@ export interface Note {
   pinned: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DocFolder {
+  id: number;
+  parentId: number | null;
+  name: string;
+  createdByMemberId: number | null;
+  createdAt: string;
+  /** Direct children count: subfolders + files. */
+  itemCount: number;
+}
+
+export interface DocFile {
+  id: number;
+  folderId: number | null;
+  name: string;
+  blobUrl: string;
+  size: number;
+  contentType: string;
+  description: string | null;
+  uploadedByMemberId: number | null;
+  /** Live join on members.displayName — null when the uploader was removed since. */
+  uploadedByName: string | null;
+  createdAt: string;
+  /** Only set on /api/files/search results — the name of the folder the file lives in. */
+  folderName?: string | null;
+}
+
+export interface DocFolderTreeItem {
+  id: number;
+  name: string;
+  parentId: number | null;
 }
 

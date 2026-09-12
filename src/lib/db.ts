@@ -322,6 +322,44 @@ async function bootstrapSchema(): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_notes_userId_memberId_updatedAt ON notes(userId, memberId, updatedAt)`
   );
 
+  // Belge Havuzu (F): a shared, per-workspace folder tree + files stored in Vercel Blob.
+  // parentId CASCADEs so deleting a folder drops its whole subfolder chain; folderId on files is
+  // SET NULL by the FK (a safety net against orphaned rows), but deleteFolder() in db/files.ts
+  // explicitly deletes descendant file rows (and their blobs) first so "delete folder" really means
+  // delete its contents, not silently move them back to the root.
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS doc_folders (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      parentId          INTEGER REFERENCES doc_folders(id) ON DELETE CASCADE,
+      name              TEXT NOT NULL,
+      createdByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      createdAt         TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_doc_folders_userId_parentId ON doc_folders(userId, parentId)`
+  );
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS doc_files (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      folderId           INTEGER REFERENCES doc_folders(id) ON DELETE SET NULL,
+      name               TEXT NOT NULL,
+      blobUrl            TEXT NOT NULL,
+      blobPathname       TEXT,
+      size               INTEGER NOT NULL,
+      contentType        TEXT NOT NULL,
+      description        TEXT,
+      uploadedByMemberId INTEGER REFERENCES members(id) ON DELETE SET NULL,
+      createdAt          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    )
+  `);
+  await db.execute(
+    `CREATE INDEX IF NOT EXISTS idx_doc_files_userId_folderId ON doc_files(userId, folderId)`
+  );
+
   // One owner row per workspace; existing workspaces get theirs here, new ones in the auth callback.
   await db.execute(`
     INSERT INTO members (userId, role, displayName)

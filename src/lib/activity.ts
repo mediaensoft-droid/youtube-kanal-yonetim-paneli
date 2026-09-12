@@ -28,7 +28,11 @@ export type ActivityAction =
   | "task.move"
   | "task.complete"
   | "task.delete"
-  | "task.comment";
+  | "task.comment"
+  | "file.upload"
+  | "file.delete"
+  | "folder.create"
+  | "folder.delete";
 
 /** Filter groups for the "İşlem türü" dropdown on /team/activity. */
 export const ACTIVITY_TYPES: Record<string, ActivityAction[]> = {
@@ -45,6 +49,7 @@ export const ACTIVITY_TYPES: Record<string, ActivityAction[]> = {
   member: ["member.create", "member.update", "member.password", "member.status", "account.update", "account.password"],
   auth: ["auth.login"],
   task: ["task.create", "task.update", "task.move", "task.complete", "task.delete", "task.comment"],
+  files: ["file.upload", "file.delete", "folder.create", "folder.delete"],
 };
 
 export const ACTION_LABELS: Record<ActivityAction, string> = {
@@ -75,6 +80,10 @@ export const ACTION_LABELS: Record<ActivityAction, string> = {
   "task.complete": "Görev tamamladı",
   "task.delete": "Görev sildi",
   "task.comment": "Göreve yorum yazdı",
+  "file.upload": "Dosya yükledi",
+  "file.delete": "Dosya sildi",
+  "folder.create": "Klasör oluşturdu",
+  "folder.delete": "Klasör sildi",
 };
 
 /** Turkish labels for `channel.update`/`task.update`'s details.changedFields entries. */
@@ -215,6 +224,14 @@ export function describeActivity(item: ActivityDescribable): ActivityDescription
       return { subject: entityName, text: "görevini sildi" };
     case "task.comment":
       return { subject: entityName, text: "görevine yorum yazdı" };
+    case "file.upload":
+      return { subject: entityName, text: "dosyasını yükledi" };
+    case "file.delete":
+      return { subject: entityName, text: "dosyasını sildi" };
+    case "folder.create":
+      return { subject: entityName, text: "klasörünü oluşturdu" };
+    case "folder.delete":
+      return { subject: entityName, text: "klasörünü sildi" };
     default:
       return { subject: entityName, text: item.action };
   }

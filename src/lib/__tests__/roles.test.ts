@@ -12,6 +12,8 @@ describe("can()", () => {
       "billing.view",
       "task.write",
       "task.delete",
+      "files.write",
+      "files.delete",
     ] as const) {
       expect(can("yonetici", p)).toBe(true);
     }
@@ -22,6 +24,8 @@ describe("can()", () => {
     expect(can("vekil", "billing.view")).toBe(false);
     expect(can("vekil", "task.write")).toBe(true);
     expect(can("vekil", "task.delete")).toBe(true);
+    expect(can("vekil", "files.write")).toBe(true);
+    expect(can("vekil", "files.delete")).toBe(true);
   });
   it("duzenleyici: writes but no delete", () => {
     expect(can("duzenleyici", "channel.write")).toBe(true);
@@ -29,6 +33,8 @@ describe("can()", () => {
     expect(can("duzenleyici", "channel.delete")).toBe(false);
     expect(can("duzenleyici", "task.write")).toBe(true);
     expect(can("duzenleyici", "task.delete")).toBe(false);
+    expect(can("duzenleyici", "files.write")).toBe(true);
+    expect(can("duzenleyici", "files.delete")).toBe(false);
   });
   it("goruntuleyici: read-only", () => {
     expect(can("goruntuleyici", "channel.write")).toBe(false);
@@ -36,6 +42,8 @@ describe("can()", () => {
     expect(can("goruntuleyici", "schedule.write")).toBe(false);
     expect(can("goruntuleyici", "task.write")).toBe(false);
     expect(can("goruntuleyici", "task.delete")).toBe(false);
+    expect(can("goruntuleyici", "files.write")).toBe(false);
+    expect(can("goruntuleyici", "files.delete")).toBe(false);
   });
   it("role guard", () => {
     expect(isMemberRole("vekil")).toBe(true);
