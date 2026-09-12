@@ -74,7 +74,11 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
   const bodyRef = useRef(body);
   const selectedIdRef = useRef(selectedId);
   const readOnlyRef = useRef(readOnly);
-  const lastSavedRef = useRef<{ title: string; body: string }>({ title, body });
+  const lastSavedRef = useRef<{ noteId: number | null; title: string; body: string }>({
+    noteId: initialSorted[0]?.id ?? null,
+    title,
+    body,
+  });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -87,10 +91,21 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
   const selected = useMemo(() => notes.find((n) => n.id === selectedId) ?? null, [notes, selectedId]);
 
   const doSave = useCallback(async (noteId: number, nextTitle: string, nextBody: string) => {
-    if (lastSavedRef.current.title === nextTitle && lastSavedRef.current.body === nextBody) {
+    // True only while this exact note is still the one on screen and still editable — the fetch
+    // below can outlive the user switching to another note (or to a read-only member view), and
+    // that switch's own snapshot/status must win, not whatever this stale request resolves to.
+    const isStillCurrent = () => selectedIdRef.current === noteId && !readOnlyRef.current;
+
+    if (
+      lastSavedRef.current.noteId === noteId &&
+      lastSavedRef.current.title === nextTitle &&
+      lastSavedRef.current.body === nextBody
+    ) {
       // Nothing actually changed since the last successful save (e.g. the user typed something
       // and undid it before the debounce fired) — don't leave the status stuck on "saving".
-      setSaveStatus((prev) => (prev === "saving" ? "idle" : prev));
+      if (isStillCurrent()) {
+        setSaveStatus((prev) => (prev === "saving" ? "idle" : prev));
+      }
       return;
     }
     setSaveStatus("saving");
@@ -102,12 +117,17 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
       });
       if (!res.ok) throw new Error(await readError(res, "Not kaydedilemedi"));
       const updated: Note = await res.json();
-      lastSavedRef.current = { title: nextTitle, body: nextBody };
-      setSaveStatus("saved");
-      setLastSavedAt(updated.updatedAt);
+      // Always safe to merge the freshly-saved note into the list, regardless of what's selected.
       setNotes((prev) => sortNotes(prev.map((n) => (n.id === updated.id ? updated : n))));
+      if (isStillCurrent()) {
+        lastSavedRef.current = { noteId, title: nextTitle, body: nextBody };
+        setSaveStatus("saved");
+        setLastSavedAt(updated.updatedAt);
+      }
     } catch {
-      setSaveStatus("error");
+      if (isStillCurrent()) {
+        setSaveStatus("error");
+      }
     }
   }, []);
 
@@ -156,7 +176,7 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
     setBody(note.body);
     titleRef.current = note.title;
     bodyRef.current = note.body;
-    lastSavedRef.current = { title: note.title, body: note.body };
+    lastSavedRef.current = { noteId: note.id, title: note.title, body: note.body };
     setSaveStatus("idle");
     setLastSavedAt(null);
   }
@@ -199,7 +219,7 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
       setBody(note.body);
       titleRef.current = note.title;
       bodyRef.current = note.body;
-      lastSavedRef.current = { title: note.title, body: note.body };
+      lastSavedRef.current = { noteId: note.id, title: note.title, body: note.body };
       setSaveStatus("idle");
       setLastSavedAt(null);
     } catch (err) {
@@ -240,7 +260,7 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
           setBody(next?.body ?? "");
           titleRef.current = next?.title ?? "";
           bodyRef.current = next?.body ?? "";
-          lastSavedRef.current = { title: next?.title ?? "", body: next?.body ?? "" };
+          lastSavedRef.current = { noteId: next?.id ?? null, title: next?.title ?? "", body: next?.body ?? "" };
           setSaveStatus("idle");
           setLastSavedAt(null);
         }
@@ -295,7 +315,7 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
     setBody(next?.body ?? "");
     titleRef.current = next?.title ?? "";
     bodyRef.current = next?.body ?? "";
-    lastSavedRef.current = { title: next?.title ?? "", body: next?.body ?? "" };
+    lastSavedRef.current = { noteId: next?.id ?? null, title: next?.title ?? "", body: next?.body ?? "" };
     setSaveStatus("idle");
     setLastSavedAt(null);
   }
@@ -368,7 +388,11 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
               <div className="px-3 py-6 text-center text-sm text-ink-muted">Yükleniyor…</div>
             ) : filteredNotes.length === 0 ? (
               <div className="px-3 py-6 text-center text-sm text-ink-muted">
-                {notes.length === 0 ? "Henüz not yok. İlk notunu oluştur." : "Sonuç bulunamadı."}
+                {notes.length === 0
+                  ? readOnly
+                    ? "Bu personelin notu yok."
+                    : "Henüz not yok. İlk notunu oluştur."
+                  : "Sonuç bulunamadı."}
               </div>
             ) : (
               filteredNotes.map((note) => (
@@ -399,7 +423,7 @@ export function NotesClient({ initialNotes, members, isOwner }: NotesClientProps
           {!selected ? (
             <div className="flex h-full min-h-[40vh] flex-col items-center justify-center gap-3 text-center text-sm text-ink-muted">
               <StickyNote className="h-8 w-8 text-ink-faint" />
-              <p>Henüz not yok. İlk notunu oluştur.</p>
+              <p>{readOnly ? "Bu personelin notu yok." : "Henüz not yok. İlk notunu oluştur."}</p>
               {!readOnly && (
                 <Button variant="secondary" onClick={() => void handleCreateNote()} disabled={creating}>
                   <Plus className="h-4 w-4" />

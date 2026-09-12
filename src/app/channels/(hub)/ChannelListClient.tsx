@@ -78,6 +78,13 @@ const GRID_CLASSES: Record<"large" | "small", string> = {
   small: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 min-[1800px]:grid-cols-10",
 };
 
+// Grouped once at module scope — recomputing this filter/group on every render (and for every
+// filter change) is wasted work since the catalog never changes at runtime.
+const AI_TOOLS_BY_CATEGORY = AI_TOOL_CATEGORIES.map((cat) => ({
+  ...cat,
+  tools: AI_TOOLS.filter((t) => t.category === cat.id),
+})).filter((cat) => cat.tools.length > 0);
+
 export function ChannelListClient({
   initialChannels,
   categories,
@@ -234,19 +241,15 @@ export function ChannelListClient({
 
         <Select value={aiToolFilter} onChange={(e) => updateFilter("aiToolFilter", e.target.value)}>
           <option value="">Tüm araçlar</option>
-          {AI_TOOL_CATEGORIES.map((cat) => {
-            const toolsInCategory = AI_TOOLS.filter((t) => t.category === cat.id);
-            if (toolsInCategory.length === 0) return null;
-            return (
-              <optgroup key={cat.id} label={cat.label}>
-                {toolsInCategory.map((tool) => (
-                  <option key={tool.id} value={tool.id}>
-                    {tool.name}
-                  </option>
-                ))}
-              </optgroup>
-            );
-          })}
+          {AI_TOOLS_BY_CATEGORY.map((cat) => (
+            <optgroup key={cat.id} label={cat.label}>
+              {cat.tools.map((tool) => (
+                <option key={tool.id} value={tool.id}>
+                  {tool.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </Select>
       </div>
 

@@ -10,7 +10,8 @@ const aiToolsList = z
   .optional()
   .refine((ids) => !ids || ids.every((id) => AI_TOOL_IDS.has(id)), {
     message: "Bilinmeyen yapay zeka aracı",
-  });
+  })
+  .transform((ids) => ids && [...new Set(ids)]);
 
 export const createChannelSchema = z.object({
   input: z.string().trim().min(1, "YouTube URL veya kanal ID'si gerekli"),

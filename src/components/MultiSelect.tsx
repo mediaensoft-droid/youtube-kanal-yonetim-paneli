@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import clsx from "clsx";
 
@@ -148,27 +148,32 @@ export function MultiSelect({ options, value, onChange, placeholder = "Seçin...
               const selected = value.includes(opt.code);
               const showGroupHeader = opt.group !== undefined && opt.group !== filteredOptions[i - 1]?.group;
               return (
-                <li key={opt.code}>
+                <Fragment key={opt.code}>
                   {showGroupHeader && (
-                    <div className="sticky top-0 bg-surface-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                    <li
+                      aria-hidden
+                      className="bg-surface-2 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-ink-faint"
+                    >
                       {opt.group}
-                    </div>
+                    </li>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => toggle(opt.code)}
-                    className={clsx(
-                      "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors duration-100 hover:bg-surface-hover",
-                      selected && "bg-brand-soft font-medium text-ink"
-                    )}
-                  >
-                    <input type="checkbox" checked={selected} readOnly className="pointer-events-none accent-brand" />
-                    {opt.color && <ColorDot color={opt.color} />}
-                    {opt.iconUrl && <OptionLogo label={opt.label} iconUrl={opt.iconUrl} />}
-                    {opt.icon && <span>{opt.icon}</span>}
-                    <span>{opt.label}</span>
-                  </button>
-                </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => toggle(opt.code)}
+                      className={clsx(
+                        "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm transition-colors duration-100 hover:bg-surface-hover",
+                        selected && "bg-brand-soft font-medium text-ink"
+                      )}
+                    >
+                      <input type="checkbox" checked={selected} readOnly className="pointer-events-none accent-brand" />
+                      {opt.color && <ColorDot color={opt.color} />}
+                      {opt.iconUrl && <OptionLogo label={opt.label} iconUrl={opt.iconUrl} />}
+                      {opt.icon && <span>{opt.icon}</span>}
+                      <span>{opt.label}</span>
+                    </button>
+                  </li>
+                </Fragment>
               );
             })}
           </ul>
